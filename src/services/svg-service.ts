@@ -54,9 +54,14 @@ export class SvgService {
         const id = crypto.randomUUID();
         const inputPath = path.join(this.tempDir, `${id}.svg`);
         const outputPath = path.join(this.tempDir, `${id}.png`);
+        const downloadedImages: string[] = [];
 
         try {
-            fs.writeFileSync(inputPath, svgContent, 'utf8');
+            // 处理外部图片（下载并替换路径）
+            const { processedSvg, downloadedFiles } = await this.processExternalImages(svgContent);
+            downloadedImages.push(...downloadedFiles);
+
+            fs.writeFileSync(inputPath, processedSvg, 'utf8');
             this.ctx.logger.debug('写入临时 SVG 文件');
 
             // 使用 spawn 替代 exec，避免命令注入
@@ -73,7 +78,98 @@ export class SvgService {
             const pngBuffer = fs.readFileSync(outputPath);
             return `data:image/png;base64,${pngBuffer.toString('base64')}`;
         } finally {
-            this.cleanup(inputPath, outputPath);
+            // 清理临时文件（包括下载的图片）
+            this.cleanup(inputPath, outputPath, ...downloadedImages);
+        }
+    }
+
+    /**
+     * 解析 SVG 并下载外部图片
+     * @param svgContent SVG 内容
+     * @returns 处理后的 SVG 内容和下载的文件列表
+     */
+    private async processExternalImages(svgContent: string): Promise<{ processedSvg: string; downloadedFiles: string[] }> {
+        // 匹配 xlink:href 和 href 属性中的网络图片链接
+        const imageRegex = /<image[^>]*?(?:xlink:href|href)=["'](https?:\/\/[^"']+)["'][^>]*?>/gi;
+        const downloadedFiles: string[] = [];
+        let processedSvg = svgContent;
+
+        const matches: { fullTag: string; imageUrl: string }[] = [];
+        let match: RegExpExecArray | null;
+
+        // 收集所有需要下载的图片
+        while ((match = imageRegex.exec(svgContent)) !== null) {
+            matches.push({
+                fullTag: match[0],
+                imageUrl: match[1],
+            });
+        }
+
+        if (matches.length === 0) {
+            return { processedSvg, downloadedFiles };
+        }
+
+        this.ctx.logger.info(`发现 ${matches.length} 个外部图片，开始下载...`);
+
+        // 下载所有图片
+        const downloadPromises = matches.map(async ({ imageUrl }) => {
+            const localPath = await this.downloadImage(imageUrl);
+            if (localPath) {
+                downloadedFiles.push(localPath);
+                // 替换 SVG 中的所有该 URL 引用
+                processedSvg = processedSvg.split(imageUrl).join(localPath);
+            }
+        });
+
+        await Promise.all(downloadPromises);
+
+        return { processedSvg, downloadedFiles };
+    }
+
+    /**
+     * 下载图片到临时目录
+     * @param imageUrl 图片 URL
+     * @returns 本地文件路径，下载失败返回 null
+     */
+    private async downloadImage(imageUrl: string): Promise<string | null> {
+        try {
+            const url = new URL(imageUrl);
+            const ext = path.extname(url.pathname) || '.png';
+            const filename = `img_${crypto.randomUUID()}${ext}`;
+            const localPath = path.join(this.tempDir, filename);
+
+            this.ctx.logger.debug(`下载外部图片: ${imageUrl}`);
+
+            // 使用 fetch 下载图片
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+
+            const response = await fetch(imageUrl, {
+                signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+
+            // 检查文件大小（最大 5MB）
+            const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+            if (buffer.length > MAX_IMAGE_SIZE) {
+                throw new Error('图片过大，最大支持 5MB');
+            }
+
+            // 保存到临时目录
+            fs.writeFileSync(localPath, buffer);
+            this.ctx.logger.debug(`图片已保存: ${localPath}`);
+
+            return localPath;
+        } catch (err) {
+            this.ctx.logger.warn(`下载图片失败: ${imageUrl}`, err);
+            return null;
         }
     }
 
