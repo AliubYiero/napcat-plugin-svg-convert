@@ -33,13 +33,14 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
     /** SVG 渲染接口 */
     router.postNoAuth('/svg/render', async (req, res) => {
         try {
-            const body = req.body as { svg?: string } | undefined;
+            const body = req.body as { svg?: string; saveWebImage?: boolean } | undefined;
 
             if (!body || !body.svg) {
                 return res.status(400).json({ code: -1, message: '缺少 svg 参数' });
             }
 
-            const imageBase64 = await svgService.renderSvgToPng(body.svg);
+            const saveWebImage = body.saveWebImage ?? false;
+            const imageBase64 = await svgService.renderSvgToPng(body.svg, saveWebImage);
 
             res.json({
                 code: 0,

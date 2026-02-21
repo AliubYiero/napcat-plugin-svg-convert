@@ -9,6 +9,7 @@ import { spawn } from 'child_process';
 import * as crypto from 'crypto';
 import type { NapCatPluginContext } from 'napcat-types/napcat-onebot/network/plugin/types';
 import type { SvgServiceStatus } from '../types';
+import { ImageCacheService } from './image-cache-service';
 
 const MAX_OUTPUT_SIZE = 10 * 1024 * 1024; // 10MB
 const RSVG_TIMEOUT = 30000; // 30秒
@@ -16,10 +17,12 @@ const RSVG_TIMEOUT = 30000; // 30秒
 export class SvgService {
     private ctx: NapCatPluginContext;
     private tempDir: string;
+    private imageCacheService: ImageCacheService;
 
     constructor(ctx: NapCatPluginContext) {
         this.ctx = ctx;
         this.tempDir = path.join(ctx.dataPath, 'temp');
+        this.imageCacheService = new ImageCacheService(ctx);
         this.ensureTempDir();
     }
 
@@ -40,7 +43,7 @@ export class SvgService {
         }
     }
 
-    async renderSvgToPng(svgContent: string): Promise<string> {
+    async renderSvgToPng(svgContent: string, saveWebImage: boolean = false): Promise<string> {
         const status = await this.checkStatus();
         if (!status.installed) {
             throw new Error('rsvg-convert 未安装，请先安装 librsvg 工具');
@@ -57,8 +60,8 @@ export class SvgService {
         const downloadedImages: string[] = [];
 
         try {
-            // 处理外部图片（下载并替换路径）
-            const { processedSvg, downloadedFiles } = await this.processExternalImages(svgContent);
+            // 处理外部图片（传入 saveWebImage 参数）
+            const { processedSvg, downloadedFiles } = await this.processExternalImages(svgContent, saveWebImage);
             downloadedImages.push(...downloadedFiles);
 
             fs.writeFileSync(inputPath, processedSvg, 'utf8');
@@ -78,17 +81,21 @@ export class SvgService {
             const pngBuffer = fs.readFileSync(outputPath);
             return `data:image/png;base64,${pngBuffer.toString('base64')}`;
         } finally {
-            // 清理临时文件（包括下载的图片）
-            this.cleanup(inputPath, outputPath, ...downloadedImages);
+            // 如果不保存缓存，清理临时下载的文件
+            if (!saveWebImage) {
+                this.cleanup(...downloadedImages);
+            }
+            this.cleanup(inputPath, outputPath);
         }
     }
 
     /**
      * 解析 SVG 并下载外部图片
      * @param svgContent SVG 内容
+     * @param saveWebImage 是否保存到缓存目录
      * @returns 处理后的 SVG 内容和下载的文件列表
      */
-    private async processExternalImages(svgContent: string): Promise<{ processedSvg: string; downloadedFiles: string[] }> {
+    private async processExternalImages(svgContent: string, saveWebImage: boolean): Promise<{ processedSvg: string; downloadedFiles: string[] }> {
         // 匹配 xlink:href 和 href 属性中的网络图片链接
         const imageRegex = /<image[^>]*?(?:xlink:href|href)=["'](https?:\/\/[^"']+)["'][^>]*?>/gi;
         const downloadedFiles: string[] = [];
@@ -109,11 +116,20 @@ export class SvgService {
             return { processedSvg, downloadedFiles };
         }
 
-        this.ctx.logger.info(`发现 ${matches.length} 个外部图片，开始下载...`);
+        this.ctx.logger.info(`发现 ${matches.length} 个外部图片，开始处理...`);
 
-        // 下载所有图片
+        // 处理所有图片
         const downloadPromises = matches.map(async ({ imageUrl }) => {
-            const localPath = await this.downloadImage(imageUrl);
+            let localPath: string | null = null;
+
+            if (saveWebImage) {
+                // 使用缓存服务获取或下载
+                localPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
+            } else {
+                // 直接下载到临时目录
+                localPath = await this.downloadImageToTemp(imageUrl);
+            }
+
             if (localPath) {
                 downloadedFiles.push(localPath);
                 // 替换 SVG 中的所有该 URL 引用
@@ -131,7 +147,7 @@ export class SvgService {
      * @param imageUrl 图片 URL
      * @returns 本地文件路径，下载失败返回 null
      */
-    private async downloadImage(imageUrl: string): Promise<string | null> {
+    private async downloadImageToTemp(imageUrl: string): Promise<string | null> {
         try {
             const url = new URL(imageUrl);
             const ext = path.extname(url.pathname) || '.png';

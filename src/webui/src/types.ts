@@ -6,9 +6,15 @@ export interface ApiResponse<T = unknown> {
     message?: string
 }
 
+// 图片缓存映射表
+export interface ImageCacheMap {
+    [imageUrl: string]: string
+}
+
 // SVG 渲染请求
 export interface SvgRenderRequest {
     svg: string
+    saveWebImage?: boolean
 }
 
 // SVG 渲染响应

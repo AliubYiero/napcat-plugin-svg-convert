@@ -34,9 +34,15 @@ const apiEndpoints: ApiEndpoint[] = [
     {
         method: 'POST',
         path: '/svg/render',
-        description: '将 SVG 代码渲染为 PNG 图片',
+        description: '将 SVG 代码渲染为 PNG 图片，支持网络图片缓存',
         params: [
-            { name: 'svg', type: 'string', required: true, description: 'SVG 代码字符串' }
+            { name: 'svg', type: 'string', required: true, description: 'SVG 代码字符串' },
+            {
+                name: 'saveWebImage',
+                type: 'boolean',
+                required: false,
+                description: '是否缓存网络图片到本地（默认 false）。启用后，SVG 中的网络图片会被下载并缓存，下次渲染相同图片时直接使用缓存'
+            }
         ],
         response: {
             code: 0,
@@ -47,7 +53,8 @@ const apiEndpoints: ApiEndpoint[] = [
         },
         example: {
             request: {
-                svg: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="red"/></svg>'
+                svg: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><image href="https://example.com/img.png" width="100" height="100"/></svg>',
+                saveWebImage: true
             },
             response: {
                 code: 0,
@@ -126,7 +133,8 @@ export function ApiDocsPage() {
                     基础信息
                 </h3>
                 <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
-                    <li>• Base URL: <code className="bg-blue-100 dark:bg-blue-800 px-1 rounded">/plugin/&lt;plugin-id&gt;/api</code></li>
+                    <li>• Host: http://127.0.0.1:6099</li>
+                    <li>• Base URL: <code className="bg-blue-100 dark:bg-blue-800 px-1 rounded">/plugin/napcat-plugin-svg-render/api</code></li>
                     <li>• 认证: 无需认证（NoAuth）</li>
                     <li>• 数据格式: JSON</li>
                 </ul>
@@ -239,6 +247,20 @@ export function ApiDocsPage() {
                         )}
                     </div>
                 ))}
+            </div>
+
+            {/* 缓存功能说明 */}
+            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                <h3 className="font-semibold text-purple-900 dark:text-purple-200 mb-2">
+                    网络图片缓存
+                </h3>
+                <ul className="text-sm text-purple-800 dark:text-purple-300 space-y-1">
+                    <li>• 设置 <code className="bg-purple-100 dark:bg-purple-800 px-1 rounded">saveWebImage: true</code> 启用缓存</li>
+                    <li>• 缓存位置: <code className="bg-purple-100 dark:bg-purple-800 px-1 rounded">cache-image/</code> 目录</li>
+                    <li>• 缓存限制: 单个文件最大 5MB，总缓存最大 50MB</li>
+                    <li>• 自动清理: 超过限制时自动删除最旧的缓存文件</li>
+                    <li>• 映射表: <code className="bg-purple-100 dark:bg-purple-800 px-1 rounded">image-cache-map.json</code> 保存 URL 到本地路径的映射</li>
+                </ul>
             </div>
 
             {/* 错误码说明 */}

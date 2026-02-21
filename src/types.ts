@@ -5,9 +5,15 @@
 
 // ==================== SVG 渲染 ====================
 
+// 图片缓存映射表
+export interface ImageCacheMap {
+    [imageUrl: string]: string; // 网络URL -> 本地路径
+}
+
 // SVG 渲染请求
 export interface SvgRenderRequest {
     svg: string;
+    saveWebImage?: boolean; // 是否保存网络图片到缓存
 }
 
 // SVG 渲染响应

@@ -11,7 +11,7 @@ import type {
 } from 'napcat-types/napcat-onebot/network/plugin/types';
 
 import { buildConfigSchema } from './config';
-import { pluginState } from './core/state';
+import { PluginConfig, pluginState } from './core/state';
 import { registerApiRoutes } from './services/api-service';
 
 // ==================== 配置 UI Schema ====================
@@ -67,7 +67,7 @@ export const plugin_get_config: PluginModule['plugin_get_config'] = async (ctx) 
 
 /** 设置配置 */
 export const plugin_set_config: PluginModule['plugin_set_config'] = async (ctx, config) => {
-    pluginState.replaceConfig(config);
+    pluginState.replaceConfig(<PluginConfig> config);
     ctx.logger.info('配置已通过 WebUI 更新');
 };
 

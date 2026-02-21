@@ -75,10 +75,18 @@ export async function getSvgServiceStatus(): Promise<ApiResponse<SvgServiceStatu
 /**
  * 渲染 SVG 为 PNG
  */
-export async function renderSvg(svg: string): Promise<ApiResponse<SvgRenderResponse>> {
+export async function renderSvg(
+    svg: string,
+    saveWebImage?: boolean
+): Promise<ApiResponse<SvgRenderResponse>> {
+    const body: SvgRenderRequest = { svg };
+    if (saveWebImage !== undefined) {
+        body.saveWebImage = saveWebImage;
+    }
+
     return noAuthFetch<SvgRenderResponse>('/svg/render', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ svg } as SvgRenderRequest),
+        body: JSON.stringify(body),
     });
 }
