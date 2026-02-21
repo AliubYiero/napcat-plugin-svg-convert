@@ -66,7 +66,7 @@ export function CacheManagePage() {
         try {
             const res = await clearAllCache();
             if (res.code === 0) {
-                showToast(`已清空 ${res.data.deleted} 个缓存`, 'success');
+                showToast(`已清空 ${res.data?.deleted ?? 0} 个缓存`, 'success');
                 loadCacheList();
             } else {
                 showToast(res.message || '清空失败', 'error');
