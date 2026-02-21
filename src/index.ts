@@ -52,7 +52,7 @@ export const plugin_init: PluginModule['plugin_init'] = async (ctx) => {
         ctx.logger.info('插件初始化中...');
 
         // 2. 生成配置 Schema（用于 NapCat WebUI 配置面板）
-        plugin_config_ui = buildConfigSchema(ctx);
+        plugin_config_ui = await buildConfigSchema(ctx);
 
         // 3. 注册 WebUI 页面和静态资源
         registerWebUI(ctx);
