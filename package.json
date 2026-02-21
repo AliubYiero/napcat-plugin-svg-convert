@@ -1,21 +1,24 @@
 {
-  "name": "napcat-plugin-template",
-  "plugin": "插件模板",
+  "name": "napcat-plugin-svg-render",
+  "plugin": "SVG渲染器",
   "version": "1.0.0",
   "type": "module",
   "main": "index.mjs",
-  "description": "NapCat 插件开发模板 - 快速开始你的插件开发",
+  "description": "NapCat SVG 渲染插件 - 将 SVG 转换为 PNG 图片",
   "author": "Your Name",
   "license": "MIT",
   "keywords": [
     "napcat",
     "plugin",
-    "qq",
-    "template"
+    "svg",
+    "render",
+    "png",
+    "image"
   ],
   "napcat": {
     "tags": [
-      "工具"
+      "工具",
+      "图片"
     ],
     "minVersion": "4.14.0",
     "homepage": ""
