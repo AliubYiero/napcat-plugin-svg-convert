@@ -4,13 +4,15 @@ import Header from './components/Header'
 import ToastContainer from './components/ToastContainer'
 import { SvgRenderPage } from './pages/SvgRenderPage'
 import { ApiDocsPage } from './pages/ApiDocsPage'
+import { CacheManagePage } from './pages/CacheManagePage'
 import { useTheme } from './hooks/useTheme'
 
-export type PageId = 'svg-render' | 'api-docs'
+export type PageId = 'svg-render' | 'api-docs' | 'cache-manage'
 
 const pageConfig: Record<PageId, { title: string; desc: string }> = {
     'svg-render': { title: 'SVG 渲染器', desc: '将 SVG 代码渲染为 PNG 图片' },
-    'api-docs': { title: 'API 文档', desc: '插件 API 接口文档' }
+    'api-docs': { title: 'API 文档', desc: '插件 API 接口文档' },
+    'cache-manage': { title: '缓存管理', desc: '管理网络图片缓存' }
 }
 
 function App() {
@@ -27,6 +29,7 @@ function App() {
         switch (currentPage) {
             case 'svg-render': return <SvgRenderPage />
             case 'api-docs': return <ApiDocsPage />
+            case 'cache-manage': return <CacheManagePage />
             default: return <SvgRenderPage />
         }
     }

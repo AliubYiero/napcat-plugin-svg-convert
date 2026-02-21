@@ -1,5 +1,5 @@
 import type { PageId } from '../App'
-import { IconImage, IconDocs } from './icons'
+import { IconImage, IconDocs, IconFolder } from './icons'
 
 interface SidebarProps {
     currentPage: PageId
@@ -9,6 +9,7 @@ interface SidebarProps {
 const menuItems: { id: PageId; label: string; icon: React.ReactNode }[] = [
     { id: 'svg-render', label: 'SVG渲染', icon: <IconImage size={18} /> },
     { id: 'api-docs', label: 'API文档', icon: <IconDocs size={18} /> },
+    { id: 'cache-manage', label: '缓存管理', icon: <IconFolder size={18} /> },
 ]
 
 export default function Sidebar({ currentPage, onPageChange }: SidebarProps) {

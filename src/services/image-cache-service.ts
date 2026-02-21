@@ -18,6 +18,7 @@ export class ImageCacheService {
     private cacheDir: string;
     private mapFilePath: string;
     private cacheMap: ImageCacheMap = {};
+    private maxCacheSize: number = MAX_CACHE_SIZE;
 
     constructor(ctx: NapCatPluginContext) {
         this.ctx = ctx;
@@ -25,6 +26,158 @@ export class ImageCacheService {
         this.mapFilePath = path.join(ctx.dataPath, CACHE_MAP_FILE);
         this.ensureCacheDir();
         this.loadCacheMap();
+        this.loadSettings();
+    }
+
+    /**
+     * 加载设置
+     */
+    private loadSettings(): void {
+        try {
+            const settingsPath = path.join(this.ctx.dataPath, 'cache-settings.json');
+            if (fs.existsSync(settingsPath)) {
+                const data = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+                if (data.maxSize) {
+                    this.maxCacheSize = data.maxSize * 1024 * 1024;
+                }
+            }
+        } catch (err) {
+            this.ctx.logger.warn('加载缓存设置失败:', err);
+        }
+    }
+
+    /**
+     * 保存设置
+     */
+    private saveSettings(): void {
+        try {
+            const settingsPath = path.join(this.ctx.dataPath, 'cache-settings.json');
+            fs.writeFileSync(settingsPath, JSON.stringify({ maxSize: this.getMaxCacheSize() }, null, 2), 'utf8');
+        } catch (err) {
+            this.ctx.logger.warn('保存缓存设置失败:', err);
+        }
+    }
+
+    /**
+     * 获取缓存列表
+     */
+    getCacheList(): Array<{ url: string; localPath: string; size: number; mtime: Date }> {
+        try {
+            const list: Array<{ url: string; localPath: string; size: number; mtime: Date }> = [];
+
+            for (const [url, localPath] of Object.entries(this.cacheMap)) {
+                if (fs.existsSync(localPath)) {
+                    const stats = fs.statSync(localPath);
+                    list.push({
+                        url,
+                        localPath,
+                        size: stats.size,
+                        mtime: stats.mtime,
+                    });
+                }
+            }
+
+            // 按修改时间倒序（最新的在前）
+            list.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+
+            return list;
+        } catch (err) {
+            this.ctx.logger.warn('获取缓存列表失败:', err);
+            return [];
+        }
+    }
+
+    /**
+     * 设置最大缓存大小
+     */
+    setMaxCacheSize(sizeMB: number): void {
+        if (sizeMB < 10 || sizeMB > 500) {
+            throw new Error('缓存大小必须在 10MB 到 500MB 之间');
+        }
+        this.maxCacheSize = sizeMB * 1024 * 1024;
+        this.saveSettings();
+        this.ctx.logger.info(`最大缓存大小已设置为 ${sizeMB}MB`);
+    }
+
+    /**
+     * 获取最大缓存大小
+     */
+    getMaxCacheSize(): number {
+        return Math.floor(this.maxCacheSize / (1024 * 1024));
+    }
+
+    /**
+     * 删除单个缓存
+     */
+    deleteCache(url: string): boolean {
+        try {
+            const localPath = this.cacheMap[url];
+            if (!localPath) {
+                return false;
+            }
+
+            if (fs.existsSync(localPath)) {
+                fs.unlinkSync(localPath);
+            }
+
+            delete this.cacheMap[url];
+            this.saveCacheMap();
+
+            this.ctx.logger.info(`删除缓存: ${url}`);
+            return true;
+        } catch (err) {
+            this.ctx.logger.warn('删除缓存失败:', err);
+            return false;
+        }
+    }
+
+    /**
+     * 清空所有缓存
+     */
+    clearAllCache(): { deleted: number; errors: number } {
+        let deleted = 0;
+        let errors = 0;
+
+        for (const [url, localPath] of Object.entries(this.cacheMap)) {
+            try {
+                if (fs.existsSync(localPath)) {
+                    fs.unlinkSync(localPath);
+                }
+                delete this.cacheMap[url];
+                deleted++;
+            } catch (err) {
+                errors++;
+                this.ctx.logger.warn(`删除缓存失败: ${url}`, err);
+            }
+        }
+
+        this.saveCacheMap();
+        this.ctx.logger.info(`清空缓存完成: ${deleted} 成功, ${errors} 失败`);
+
+        return { deleted, errors };
+    }
+
+    /**
+     * 获取缓存图片 base64
+     */
+    async getCacheImageBase64(url: string): Promise<string | null> {
+        try {
+            const localPath = this.cacheMap[url];
+            if (!localPath || !fs.existsSync(localPath)) {
+                return null;
+            }
+
+            const buffer = fs.readFileSync(localPath);
+            const ext = path.extname(localPath).toLowerCase();
+            const mimeType = ext === '.png' ? 'image/png' :
+                            ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
+                            ext === '.gif' ? 'image/gif' : 'image/png';
+
+            return `data:${mimeType};base64,${buffer.toString('base64')}`;
+        } catch (err) {
+            this.ctx.logger.warn('获取缓存图片失败:', err);
+            return null;
+        }
     }
 
     /**
@@ -156,11 +309,11 @@ export class ImageCacheService {
             }
 
             // 如果超过限制，删除最旧的文件
-            if (totalSize > MAX_CACHE_SIZE) {
+            if (totalSize > this.maxCacheSize) {
                 // 按修改时间排序（最旧的在前）
                 files.sort((a, b) => a.mtime.getTime() - b.mtime.getTime());
 
-                let sizeToFree = totalSize - MAX_CACHE_SIZE + 10 * 1024 * 1024; // 多清理 10MB
+                let sizeToFree = totalSize - this.maxCacheSize + 10 * 1024 * 1024; // 多清理 10MB
                 for (const file of files) {
                     if (sizeToFree <= 0) break;
 

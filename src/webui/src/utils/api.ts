@@ -90,3 +90,52 @@ export async function renderSvg(
         body: JSON.stringify(body),
     });
 }
+
+/**
+ * 获取缓存列表
+ */
+export async function getCacheList(): Promise<ApiResponse<{
+    list: Array<{ url: string; localPath: string; size: number; mtime: string }>;
+    stats: { count: number; size: number };
+    maxSize: number;
+}>> {
+    return noAuthFetch('/cache/list');
+}
+
+/**
+ * 查看缓存图片
+ */
+export async function viewCacheImage(url: string): Promise<ApiResponse<{ imageBase64: string }>> {
+    return noAuthFetch(`/cache/image?url=${encodeURIComponent(url)}`);
+}
+
+/**
+ * 更新缓存设置
+ */
+export async function updateCacheSettings(maxSize: number): Promise<ApiResponse<void>> {
+    return noAuthFetch('/cache/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maxSize }),
+    });
+}
+
+/**
+ * 删除单个缓存
+ */
+export async function deleteCache(url: string): Promise<ApiResponse<void>> {
+    return noAuthFetch('/cache/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+    });
+}
+
+/**
+ * 清空所有缓存
+ */
+export async function clearAllCache(): Promise<ApiResponse<{ deleted: number; errors: number }>> {
+    return noAuthFetch('/cache/clear', {
+        method: 'POST',
+    });
+}

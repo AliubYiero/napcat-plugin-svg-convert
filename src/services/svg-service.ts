@@ -22,7 +22,7 @@ export class SvgService {
     constructor(ctx: NapCatPluginContext) {
         this.ctx = ctx;
         this.tempDir = path.join(ctx.dataPath, 'temp');
-        this.imageCacheService = new ImageCacheService(ctx);
+        this.imageCacheService = new ImageCache Service(ctx);
         this.ensureTempDir();
     }
 
