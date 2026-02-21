@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getSvgServiceStatus, renderSvg } from '../utils/api';
-import { useToast } from '../hooks/useToast';
+import { showToast } from '../hooks/useToast';
 import type { SvgServiceStatus } from '../types';
 
 export function SvgRenderPage() {
@@ -9,7 +9,6 @@ export function SvgRenderPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [status, setStatus] = useState<SvgServiceStatus | null>(null);
     const [isCheckingStatus, setIsCheckingStatus] = useState(true);
-    const { showToast } = useToast();
 
     useEffect(() => {
         checkStatus();
