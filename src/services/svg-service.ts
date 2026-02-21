@@ -26,7 +26,7 @@ export class SvgService {
     private ensureTempDir(): void {
         if (!fs.existsSync(this.tempDir)) {
             fs.mkdirSync(this.tempDir, { recursive: true });
-            this.ctx.logger.info(`创建临时目录: ${this.tempDir}`);
+            this.ctx.logger.info('临时目录已创建');
         }
     }
 
