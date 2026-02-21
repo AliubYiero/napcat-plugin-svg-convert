@@ -36,6 +36,31 @@ export interface GroupConfig {
     // TODO: 在这里添加群级别的配置项
 }
 
+// ==================== SVG 渲染 ====================
+
+/**
+ * SVG 渲染请求
+ */
+export interface SvgRenderRequest {
+    svg: string;
+}
+
+/**
+ * SVG 渲染响应
+ */
+export interface SvgRenderResponse {
+    imageBase64: string;
+    format: 'png';
+}
+
+/**
+ * SVG 服务状态
+ */
+export interface SvgServiceStatus {
+    installed: boolean;
+    version?: string;
+}
+
 // ==================== API 响应 ====================
 
 /**
