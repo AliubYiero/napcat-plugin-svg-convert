@@ -5,15 +5,17 @@ import ToastContainer from './components/ToastContainer'
 import StatusPage from './pages/StatusPage'
 import ConfigPage from './pages/ConfigPage'
 import GroupsPage from './pages/GroupsPage'
+import { SvgRenderPage } from './pages/SvgRenderPage'
 import { useStatus } from './hooks/useStatus'
 import { useTheme } from './hooks/useTheme'
 
-export type PageId = 'status' | 'config' | 'groups'
+export type PageId = 'status' | 'config' | 'groups' | 'svg-render'
 
 const pageConfig: Record<PageId, { title: string; desc: string }> = {
     status: { title: '仪表盘', desc: '插件运行状态与数据概览' },
     config: { title: '插件配置', desc: '基础设置与参数配置' },
-    groups: { title: '群管理', desc: '管理群的启用与禁用' }
+    groups: { title: '群管理', desc: '管理群的启用与禁用' },
+    'svg-render': { title: 'SVG 渲染器', desc: '将 SVG 代码渲染为 PNG 图片' }
 }
 
 function App() {
@@ -38,6 +40,7 @@ function App() {
             case 'status': return <StatusPage status={status} onRefresh={fetchStatus} />
             case 'config': return <ConfigPage />
             case 'groups': return <GroupsPage />
+            case 'svg-render': return <SvgRenderPage />
             default: return <StatusPage status={status} onRefresh={fetchStatus} />
         }
     }
