@@ -1,4 +1,4 @@
-import type { ApiResponse } from '../types'
+import type { ApiResponse, SvgRenderRequest, SvgRenderResponse, SvgServiceStatus } from '../types'
 
 function resolvePluginName(): string {
     if (window.__PLUGIN_NAME__) return window.__PLUGIN_NAME__
@@ -63,4 +63,22 @@ export async function authFetch<T = unknown>(path: string, options: RequestInit 
         throw new Error(text || `HTTP ${res.status}`)
     }
     return res.json()
+}
+
+/**
+ * 获取 SVG 服务状态
+ */
+export async function getSvgServiceStatus(): Promise<ApiResponse<SvgServiceStatus>> {
+    return noAuthFetch<SvgServiceStatus>('/svg/status');
+}
+
+/**
+ * 渲染 SVG 为 PNG
+ */
+export async function renderSvg(svg: string): Promise<ApiResponse<SvgRenderResponse>> {
+    return noAuthFetch<SvgRenderResponse>('/svg/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ svg } as SvgRenderRequest),
+    });
 }
