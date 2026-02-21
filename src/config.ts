@@ -10,9 +10,6 @@ import type { PluginConfig } from './types';
 export const DEFAULT_CONFIG: PluginConfig = {
     enabled: true,
     debug: false,
-    commandPrefix: '#cmd',
-    cooldownSeconds: 60,
-    groupConfigs: {},
     // TODO: 在这里添加你的默认配置值
 };
 
@@ -30,8 +27,8 @@ export const DEFAULT_CONFIG: PluginConfig = {
  *   - combine(...items)  → 组合多个配置项为 Schema
  */
 export function buildConfigSchema(ctx: NapCatPluginContext): PluginConfigSchema {
-    const pluginId = ctx.pluginId;
-    const webuiUrl = `/plugin/${pluginId}/page/dashboard`;
+    const pluginName = ctx.pluginName;
+    const webuiUrl = `/plugin/${pluginName}/page/dashboard`;
 
     return ctx.NapCatConfig.combine(
         // 插件信息头部
@@ -44,8 +41,8 @@ export function buildConfigSchema(ctx: NapCatPluginContext): PluginConfigSchema 
         // 跳转到 WebUI
         ctx.NapCatConfig.html(`
             <div style="margin-bottom: 20px;">
-                <a href="${webuiUrl}" 
-                   style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; 
+                <a href="${webuiUrl}" target="_blank"
+                   style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
                           background: #FB7299; color: white; text-decoration: none; border-radius: 8px;
                           font-size: 14px; font-weight: 500; transition: all 0.2s;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

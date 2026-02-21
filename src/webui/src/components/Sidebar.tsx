@@ -8,8 +8,6 @@ interface SidebarProps {
 
 const menuItems: { id: PageId; label: string; icon: React.ReactNode }[] = [
     { id: 'status', label: '仪表盘', icon: <IconDashboard size={18} /> },
-    { id: 'config', label: '插件配置', icon: <IconSettings size={18} /> },
-    { id: 'groups', label: '群管理', icon: <IconGroup size={18} /> },
     { id: 'svg-render', label: 'SVG渲染', icon: <IconImage size={18} /> },
 ]
 
@@ -22,8 +20,8 @@ export default function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                     <IconPlugin size={18} />
                 </div>
                 <div>
-                    <h1 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">Plugin Template</h1>
-                    <p className="text-[10px] text-gray-400 font-medium tracking-wider">NAPCAT PLUGIN</p>
+                    <h1 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">Svg Render</h1>
+                    <p className="text-[10px] text-gray-400 font-medium tracking-wider"></p>
                 </div>
             </div>
 

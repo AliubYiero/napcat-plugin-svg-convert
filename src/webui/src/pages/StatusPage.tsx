@@ -104,23 +104,23 @@ export default function StatusPage({ status, onRefresh }: StatusPageProps) {
             </div>
 
             {/* 配置概览 */}
-            <div className="card p-5 hover-lift animate-fade-in-up">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <IconTerminal size={16} className="text-gray-400" />
-                        基础信息
-                    </h3>
-                    <button onClick={onRefresh} className="btn-ghost btn text-xs px-2.5 py-1.5">
-                        <IconRefresh size={13} />
-                        刷新
-                    </button>
-                </div>
-                <div className="space-y-3">
-                    <InfoRow label="命令前缀" value={config.commandPrefix} />
-                    <InfoRow label="冷却时间" value={`${config.cooldownSeconds} 秒`} />
-                    <InfoRow label="调试模式" value={config.debug ? '开启' : '关闭'} />
-                </div>
-            </div>
+            {/*<div className="card p-5 hover-lift animate-fade-in-up">*/}
+            {/*    <div className="flex items-center justify-between mb-4">*/}
+            {/*        <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">*/}
+            {/*            <IconTerminal size={16} className="text-gray-400" />*/}
+            {/*            基础信息*/}
+            {/*        </h3>*/}
+            {/*        <button onClick={onRefresh} className="btn-ghost btn text-xs px-2.5 py-1.5">*/}
+            {/*            <IconRefresh size={13} />*/}
+            {/*            刷新*/}
+            {/*        </button>*/}
+            {/*    </div>*/}
+            {/*    <div className="space-y-3">*/}
+            {/*        <InfoRow label="命令前缀" value={config.commandPrefix} />*/}
+            {/*        <InfoRow label="冷却时间" value={`${config.cooldownSeconds} 秒`} />*/}
+            {/*        <InfoRow label="调试模式" value={config.debug ? '开启' : '关闭'} />*/}
+            {/*    </div>*/}
+            {/*</div>*/}
         </div>
     )
 }

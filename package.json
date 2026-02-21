@@ -5,7 +5,7 @@
   "type": "module",
   "main": "index.mjs",
   "description": "NapCat SVG 渲染插件 - 将 SVG 转换为 PNG 图片",
-  "author": "Your Name",
+  "author": "Yiero",
   "license": "MIT",
   "keywords": [
     "napcat",

@@ -29,20 +29,13 @@ export default function Header({ title, description, isScrolled, status, current
                 <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{title}</h2>
                 <p className="text-gray-400 text-xs mt-0.5">{description}</p>
             </div>
-
-            {currentPage === 'config' ? (
-                <div className="header-badge flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#1e1e20] rounded-lg border border-gray-200 dark:border-gray-800">
-                    <IconSave size={13} className="text-emerald-500" />
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-300">自动保存</span>
-                </div>
-            ) : (
-                <div className="header-badge flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#1e1e20] rounded-lg border border-gray-200 dark:border-gray-800">
-                    <div className={`status-dot ${status ? (isEnabled ? 'online' : 'offline') : ''}`} />
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+            
+            <div className="header-badge flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#1e1e20] rounded-lg border border-gray-200 dark:border-gray-800">
+                <div className={`status-dot ${status ? (isEnabled ? 'online' : 'offline') : ''}`} />
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
                         {status ? (isEnabled ? '运行中' : '已停用') : '连接中...'}
                     </span>
-                </div>
-            )}
+            </div>
         </header>
     )
 }
