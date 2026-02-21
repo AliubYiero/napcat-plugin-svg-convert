@@ -1,35 +1,23 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import ToastContainer from './components/ToastContainer'
-import StatusPage from './pages/StatusPage'
-import ConfigPage from './pages/ConfigPage'
-import GroupsPage from './pages/GroupsPage'
 import { SvgRenderPage } from './pages/SvgRenderPage'
 import { ApiDocsPage } from './pages/ApiDocsPage'
-import { useStatus } from './hooks/useStatus'
 import { useTheme } from './hooks/useTheme'
 
-export type PageId = 'status' | 'svg-render' | 'api-docs'
+export type PageId = 'svg-render' | 'api-docs'
 
 const pageConfig: Record<PageId, { title: string; desc: string }> = {
-    status: { title: '仪表盘', desc: '插件运行状态与数据概览' },
     'svg-render': { title: 'SVG 渲染器', desc: '将 SVG 代码渲染为 PNG 图片' },
     'api-docs': { title: 'API 文档', desc: '插件 API 接口文档' }
 }
 
 function App() {
-    const [currentPage, setCurrentPage] = useState<PageId>('status')
+    const [currentPage, setCurrentPage] = useState<PageId>('svg-render')
     const [isScrolled, setIsScrolled] = useState(false)
-    const { status, fetchStatus } = useStatus()
 
     useTheme()
-
-    useEffect(() => {
-        fetchStatus()
-        const interval = setInterval(fetchStatus, 5000)
-        return () => clearInterval(interval)
-    }, [fetchStatus])
 
     const handleScroll = (e: React.UIEvent<HTMLElement>) => {
         setIsScrolled(e.currentTarget.scrollTop > 10)
@@ -37,10 +25,9 @@ function App() {
 
     const renderPage = () => {
         switch (currentPage) {
-            case 'status': return <StatusPage status={status} onRefresh={fetchStatus} />
             case 'svg-render': return <SvgRenderPage />
             case 'api-docs': return <ApiDocsPage />
-            default: return <StatusPage status={status} onRefresh={fetchStatus} />
+            default: return <SvgRenderPage />
         }
     }
 
@@ -55,8 +42,6 @@ function App() {
                         title={pageConfig[currentPage].title}
                         description={pageConfig[currentPage].desc}
                         isScrolled={isScrolled}
-                        status={status}
-                        currentPage={currentPage}
                     />
                     <div className="px-4 md:px-8 pb-8">
                         <div key={currentPage} className="page-enter">

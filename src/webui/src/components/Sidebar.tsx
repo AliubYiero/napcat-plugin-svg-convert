@@ -1,5 +1,5 @@
 import type { PageId } from '../App'
-import { IconDashboard, IconSettings, IconGroup, IconGithub, IconPlugin, IconSun, IconImage, IconDocs } from './icons'
+import { IconImage, IconDocs } from './icons'
 
 interface SidebarProps {
     currentPage: PageId
@@ -7,7 +7,6 @@ interface SidebarProps {
 }
 
 const menuItems: { id: PageId; label: string; icon: React.ReactNode }[] = [
-    { id: 'status', label: '仪表盘', icon: <IconDashboard size={18} /> },
     { id: 'svg-render', label: 'SVG渲染', icon: <IconImage size={18} /> },
     { id: 'api-docs', label: 'API文档', icon: <IconDocs size={18} /> },
 ]
@@ -17,17 +16,20 @@ export default function Sidebar({ currentPage, onPageChange }: SidebarProps) {
         <aside className="w-60 flex-shrink-0 bg-white dark:bg-[#1a1b1d] border-r border-gray-200 dark:border-gray-800 flex flex-col">
             {/* Logo */}
             <div className="px-5 py-6 flex items-center gap-3">
-                <div className="sidebar-logo w-8 h-8 flex items-center justify-center bg-brand-500 rounded-lg text-white">
-                    <IconPlugin size={18} />
+                <div className="w-8 h-8 flex items-center justify-center bg-[#FB7299] rounded-lg text-white">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                    </svg>
                 </div>
                 <div>
-                    <h1 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">Svg Render</h1>
-                    <p className="text-[10px] text-gray-400 font-medium tracking-wider"></p>
+                    <h1 className="font-bold text-sm leading-tight text-gray-900 dark:text-white">SVG Render</h1>
                 </div>
             </div>
 
             {/* Nav */}
-            <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto nav-stagger">
+            <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
                 {menuItems.map((item) => (
                     <div
                         key={item.id}
@@ -41,22 +43,9 @@ export default function Sidebar({ currentPage, onPageChange }: SidebarProps) {
             </nav>
 
             {/* Footer */}
-            <div className="px-3 pb-2">
-                <a
-                    href="https://github.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="sidebar-item no-underline"
-                >
-                    <IconGithub size={18} />
-                    <span>反馈问题</span>
-                </a>
-            </div>
-
             <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800">
-                <div className="flex items-center justify-center w-full py-2 rounded-lg text-gray-500 bg-gray-50 dark:bg-gray-800/50 cursor-default text-xs gap-2">
-                    <IconSun size={14} className="opacity-60" />
-                    <span>跟随系统主题</span>
+                <div className="flex items-center justify-center w-full py-2 rounded-lg text-gray-500 bg-gray-50 dark:bg-gray-800/50 text-xs">
+                    SVG 渲染插件 v1.0.0
                 </div>
             </div>
         </aside>

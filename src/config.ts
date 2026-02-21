@@ -1,31 +1,13 @@
 /**
  * 插件配置模块
- * 定义默认配置值和 WebUI 配置 Schema
+ * 定义 WebUI 配置 Schema
  */
 
 import type { NapCatPluginContext, PluginConfigSchema } from 'napcat-types/napcat-onebot/network/plugin/types';
-import type { PluginConfig } from './types';
 import { SvgService } from './services/svg-service';
-
-/** 默认配置 */
-export const DEFAULT_CONFIG: PluginConfig = {
-    enabled: true,
-    debug: false,
-    // TODO: 在这里添加你的默认配置值
-};
 
 /**
  * 构建 WebUI 配置 Schema
- *
- * 使用 ctx.NapCatConfig 提供的构建器方法生成配置界面：
- *   - boolean(key, label, defaultValue?, description?, reactive?)  → 开关
- *   - text(key, label, defaultValue?, description?, reactive?)     → 文本输入
- *   - number(key, label, defaultValue?, description?, reactive?)   → 数字输入
- *   - select(key, label, options, defaultValue?, description?)     → 下拉单选
- *   - multiSelect(key, label, options, defaultValue?, description?) → 下拉多选
- *   - html(content)     → 自定义 HTML 展示（不保存值）
- *   - plainText(content) → 纯文本说明
- *   - combine(...items)  → 组合多个配置项为 Schema
  */
 export async function buildConfigSchema(ctx: NapCatPluginContext): Promise<PluginConfigSchema> {
     const pluginName = ctx.pluginName;
