@@ -90,6 +90,20 @@ export class SvgService {
     }
 
     /**
+     * 从缓存路径创建临时文件
+     * @param sourcePath 源文件路径（缓存文件）
+     * @returns 临时文件路径和显示名称
+     */
+    private createTempFromCache(sourcePath: string): { tempPath: string; displayPath: string } {
+        const ext = path.extname(sourcePath) || '.png';
+        const tempFilename = `cached_${crypto.randomUUID()}${ext}`;
+        const tempPath = path.join(this.tempDir, tempFilename);
+        fs.copyFileSync(sourcePath, tempPath);
+
+        return { tempPath, displayPath: tempFilename };
+    }
+
+    /**
      * 解析 SVG 并下载外部图片
      * @param svgContent SVG 内容
      * @param saveWebImage 是否保存到缓存目录
@@ -128,24 +142,16 @@ export class SvgService {
 
             if (cachedPath) {
                 // 缓存存在，直接使用
-                const ext = path.extname(cachedPath) || '.png';
-                const tempFilename = `cached_${crypto.randomUUID()}${ext}`;
-                const tempPath = path.join(this.tempDir, tempFilename);
-                fs.copyFileSync(cachedPath, tempPath);
-
+                const { tempPath, displayPath: filename } = this.createTempFromCache(cachedPath);
                 localPath = tempPath;  // 用于清理
-                displayPath = tempFilename;  // 相对路径用于 SVG
+                displayPath = filename;  // 相对路径用于 SVG
             } else if (saveWebImage) {
                 // 缓存不存在，且需要保存 → 下载并缓存
                 cachedPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
                 if (cachedPath) {
-                    const ext = path.extname(cachedPath) || '.png';
-                    const tempFilename = `cached_${crypto.randomUUID()}${ext}`;
-                    const tempPath = path.join(this.tempDir, tempFilename);
-                    fs.copyFileSync(cachedPath, tempPath);
-
+                    const { tempPath, displayPath: filename } = this.createTempFromCache(cachedPath);
                     localPath = tempPath;
-                    displayPath = tempFilename;
+                    displayPath = filename;
                 }
             } else {
                 // 缓存不存在，且不需要保存 → 直接下载到临时目录
