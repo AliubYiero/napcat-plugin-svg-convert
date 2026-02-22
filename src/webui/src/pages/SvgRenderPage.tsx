@@ -9,6 +9,7 @@ export function SvgRenderPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [status, setStatus] = useState<SvgServiceStatus | null>(null);
     const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+    const [cacheWebImages, setCacheWebImages] = useState(false);
 
     useEffect(() => {
         checkStatus();
@@ -38,7 +39,7 @@ export function SvgRenderPage() {
 
         setIsLoading(true);
         try {
-            const res = await renderSvg(svgInput);
+            const res = await renderSvg(svgInput, cacheWebImages);
             if (res.code === 0 && res.data) {
                 setRenderedImage(res.data.imageBase64);
                 showToast('渲染成功', 'success');
