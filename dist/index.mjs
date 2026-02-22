@@ -53,9 +53,22 @@ class ImageCacheService {
   getCacheList() {
     try {
       const list = [];
-      for (const [url, localPath] of Object.entries(this.cacheMap)) {
-        if (fs.existsSync(localPath)) {
-          const stats = fs.statSync(localPath);
+      this.loadCacheMap();
+      const cacheFiles = fs.readdirSync(this.cacheDir);
+      for (const filename of cacheFiles) {
+        const localPath = path.join(this.cacheDir, filename);
+        const stats = fs.statSync(localPath);
+        if (stats.isFile()) {
+          let url = "";
+          for (const [mappedUrl, mappedPath] of Object.entries(this.cacheMap)) {
+            if (mappedPath === localPath) {
+              url = mappedUrl;
+              break;
+            }
+          }
+          if (!url) {
+            url = `未知来源: ${filename}`;
+          }
           list.push({
             url,
             localPath,
@@ -202,6 +215,19 @@ class ImageCacheService {
     return localPath;
   }
   /**
+   * 仅从缓存获取图片路径，如果不存在返回 null（不自动下载）
+   * @param imageUrl 网络图片URL
+   * @returns 本地缓存路径，不存在返回 null
+   */
+  getCachedImagePath(imageUrl) {
+    const cachedPath = this.cacheMap[imageUrl];
+    if (cachedPath && fs.existsSync(cachedPath)) {
+      this.ctx.logger.debug(`缓存命中(只读): ${imageUrl}`);
+      return cachedPath;
+    }
+    return null;
+  }
+  /**
    * 下载图片到缓存目录
    */
   async downloadImage(imageUrl) {
@@ -278,14 +304,17 @@ class ImageCacheService {
   getCacheStats() {
     try {
       let size = 0;
+      let count = 0;
       const files = fs.readdirSync(this.cacheDir);
       for (const file of files) {
-        const stats = fs.statSync(path.join(this.cacheDir, file));
+        const filePath = path.join(this.cacheDir, file);
+        const stats = fs.statSync(filePath);
         if (stats.isFile()) {
           size += stats.size;
+          count++;
         }
       }
-      return { count: files.length, size };
+      return { count, size };
     } catch {
       return { count: 0, size: 0 };
     }
@@ -353,6 +382,18 @@ class SvgService {
     }
   }
   /**
+   * 从缓存路径创建临时文件
+   * @param sourcePath 源文件路径（缓存文件）
+   * @returns 临时文件路径和显示名称
+   */
+  createTempFromCache(sourcePath) {
+    const ext = path.extname(sourcePath) || ".png";
+    const tempFilename = `cached_${crypto.randomUUID()}${ext}`;
+    const tempPath = path.join(this.tempDir, tempFilename);
+    fs.copyFileSync(sourcePath, tempPath);
+    return { tempPath, displayPath: tempFilename };
+  }
+  /**
    * 解析 SVG 并下载外部图片
    * @param svgContent SVG 内容
    * @param saveWebImage 是否保存到缓存目录
@@ -376,14 +417,28 @@ class SvgService {
     this.ctx.logger.info(`发现 ${matches.length} 个外部图片，开始处理...`);
     const downloadPromises = matches.map(async ({ imageUrl }) => {
       let localPath = null;
-      if (saveWebImage) {
-        localPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
+      let displayPath = null;
+      let cachedPath = this.imageCacheService.getCachedImagePath(imageUrl);
+      if (cachedPath) {
+        const { tempPath, displayPath: filename } = this.createTempFromCache(cachedPath);
+        localPath = tempPath;
+        displayPath = filename;
+      } else if (saveWebImage) {
+        cachedPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
+        if (cachedPath) {
+          const { tempPath, displayPath: filename } = this.createTempFromCache(cachedPath);
+          localPath = tempPath;
+          displayPath = filename;
+        }
       } else {
         localPath = await this.downloadImageToTemp(imageUrl);
+        if (localPath) {
+          displayPath = path.basename(localPath);
+        }
       }
-      if (localPath) {
+      if (localPath && displayPath) {
         downloadedFiles.push(localPath);
-        processedSvg = processedSvg.split(imageUrl).join(localPath);
+        processedSvg = processedSvg.split(imageUrl).join(displayPath);
       }
     });
     await Promise.all(downloadPromises);
