@@ -123,24 +123,35 @@ export class SvgService {
             let localPath: string | null = null;
             let displayPath: string | null = null;  // 用于 SVG 中的相对路径
 
-            if (saveWebImage) {
-                // 使用缓存服务获取或下载
-                const cachedPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
+            // 1. 无论 saveWebImage 如何，先检查缓存是否存在
+            let cachedPath = this.imageCacheService.getCachedImagePath(imageUrl);
+
+            if (cachedPath) {
+                // 缓存存在，直接使用
+                const ext = path.extname(cachedPath) || '.png';
+                const tempFilename = `cached_${crypto.randomUUID()}${ext}`;
+                const tempPath = path.join(this.tempDir, tempFilename);
+                fs.copyFileSync(cachedPath, tempPath);
+
+                localPath = tempPath;  // 用于清理
+                displayPath = tempFilename;  // 相对路径用于 SVG
+            } else if (saveWebImage) {
+                // 缓存不存在，且需要保存 → 下载并缓存
+                cachedPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
                 if (cachedPath) {
-                    // 将缓存图片复制到临时目录
                     const ext = path.extname(cachedPath) || '.png';
                     const tempFilename = `cached_${crypto.randomUUID()}${ext}`;
                     const tempPath = path.join(this.tempDir, tempFilename);
                     fs.copyFileSync(cachedPath, tempPath);
 
-                    localPath = tempPath;  // 用于清理
-                    displayPath = tempFilename;  // 相对路径用于 SVG
+                    localPath = tempPath;
+                    displayPath = tempFilename;
                 }
             } else {
-                // 直接下载到临时目录
+                // 缓存不存在，且不需要保存 → 直接下载到临时目录
                 localPath = await this.downloadImageToTemp(imageUrl);
                 if (localPath) {
-                    displayPath = path.basename(localPath);  // 相对路径
+                    displayPath = path.basename(localPath);
                 }
             }
 
