@@ -129,6 +129,35 @@ export function SvgRenderPage() {
                 />
             </div>
 
+            {/* 缓存网络图片开关 */}
+            <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-3">
+                    {/* Toggle Switch */}
+                    <button
+                        onClick={() => setCacheWebImages(!cacheWebImages)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#FB7299] focus:ring-offset-2 ${
+                            cacheWebImages
+                                ? 'bg-[#FB7299]'
+                                : 'bg-gray-200 dark:bg-gray-600'
+                        }`}
+                        role="switch"
+                        aria-checked={cacheWebImages}
+                    >
+                        <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                cacheWebImages ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                        />
+                    </button>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                        缓存网络图片
+                    </span>
+                </div>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {cacheWebImages ? '已启用' : '已禁用'}
+                </span>
+            </div>
+
             <button
                 onClick={handleRender}
                 disabled={isLoading || !status?.installed}
