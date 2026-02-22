@@ -263,6 +263,20 @@ export class ImageCacheService {
     }
 
     /**
+     * 仅从缓存获取图片路径，如果不存在返回 null（不自动下载）
+     * @param imageUrl 网络图片URL
+     * @returns 本地缓存路径，不存在返回 null
+     */
+    getCachedImagePath(imageUrl: string): string | null {
+        const cachedPath = this.cacheMap[imageUrl];
+        if (cachedPath && fs.existsSync(cachedPath)) {
+            this.ctx.logger.debug(`缓存命中(只读): ${imageUrl}`);
+            return cachedPath;
+        }
+        return null;
+    }
+
+    /**
      * 下载图片到缓存目录
      */
     private async downloadImage(imageUrl: string): Promise<string | null> {
@@ -365,14 +379,17 @@ export class ImageCacheService {
     getCacheStats(): { count: number; size: number } {
         try {
             let size = 0;
+            let count = 0;
             const files = fs.readdirSync(this.cacheDir);
             for (const file of files) {
-                const stats = fs.statSync(path.join(this.cacheDir, file));
+                const filePath = path.join(this.cacheDir, file);
+                const stats = fs.statSync(filePath);
                 if (stats.isFile()) {
                     size += stats.size;
+                    count++;
                 }
             }
-            return { count: files.length, size };
+            return { count, size };
         } catch {
             return { count: 0, size: 0 };
         }
