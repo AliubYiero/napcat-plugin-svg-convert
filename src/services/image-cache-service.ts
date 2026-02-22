@@ -65,9 +65,30 @@ export class ImageCacheService {
         try {
             const list: Array<{ url: string; localPath: string; size: number; mtime: Date }> = [];
 
-            for (const [url, localPath] of Object.entries(this.cacheMap)) {
-                if (fs.existsSync(localPath)) {
-                    const stats = fs.statSync(localPath);
+            // 先加载最新的缓存映射表
+            this.loadCacheMap();
+
+            // 扫描缓存目录
+            const cacheFiles = fs.readdirSync(this.cacheDir);
+            for (const filename of cacheFiles) {
+                const localPath = path.join(this.cacheDir, filename);
+                const stats = fs.statSync(localPath);
+
+                if (stats.isFile()) {
+                    // 查找对应的 URL
+                    let url = '';
+                    for (const [mappedUrl, mappedPath] of Object.entries(this.cacheMap)) {
+                        if (mappedPath === localPath) {
+                            url = mappedUrl;
+                            break;
+                        }
+                    }
+
+                    // 如果找不到映射，使用文件名作为标识
+                    if (!url) {
+                        url = `未知来源: ${filename}`;
+                    }
+
                     list.push({
                         url,
                         localPath,
