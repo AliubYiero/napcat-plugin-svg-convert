@@ -121,19 +121,33 @@ export class SvgService {
         // 处理所有图片
         const downloadPromises = matches.map(async ({ imageUrl }) => {
             let localPath: string | null = null;
+            let displayPath: string | null = null;  // 用于 SVG 中的相对路径
 
             if (saveWebImage) {
                 // 使用缓存服务获取或下载
-                localPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
+                const cachedPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
+                if (cachedPath) {
+                    // 将缓存图片复制到临时目录
+                    const ext = path.extname(cachedPath) || '.png';
+                    const tempFilename = `cached_${crypto.randomUUID()}${ext}`;
+                    const tempPath = path.join(this.tempDir, tempFilename);
+                    fs.copyFileSync(cachedPath, tempPath);
+
+                    localPath = tempPath;  // 用于清理
+                    displayPath = tempFilename;  // 相对路径用于 SVG
+                }
             } else {
                 // 直接下载到临时目录
                 localPath = await this.downloadImageToTemp(imageUrl);
+                if (localPath) {
+                    displayPath = path.basename(localPath);  // 相对路径
+                }
             }
 
-            if (localPath) {
+            if (localPath && displayPath) {
                 downloadedFiles.push(localPath);
-                // 替换 SVG 中的所有该 URL 引用
-                processedSvg = processedSvg.split(imageUrl).join(localPath);
+                // 使用相对路径替换 SVG 中的 URL
+                processedSvg = processedSvg.split(imageUrl).join(displayPath);
             }
         });
 
