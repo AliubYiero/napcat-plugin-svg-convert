@@ -28,3 +28,9 @@ export interface SvgServiceStatus {
     installed: boolean
     version?: string
 }
+
+// 临时目录统计
+export interface TempStats {
+    count: number
+    size: number
+}
