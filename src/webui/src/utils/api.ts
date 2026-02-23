@@ -1,4 +1,4 @@
-import type { ApiResponse, SvgRenderRequest, SvgRenderResponse, SvgServiceStatus } from '../types'
+import type { ApiResponse, SvgRenderRequest, SvgRenderResponse, SvgServiceStatus, TempStats } from '../types'
 
 function resolvePluginName(): string {
     if (window.__PLUGIN_NAME__) return window.__PLUGIN_NAME__
@@ -136,6 +136,22 @@ export async function deleteCache(url: string): Promise<ApiResponse<void>> {
  */
 export async function clearAllCache(): Promise<ApiResponse<{ deleted: number; errors: number }>> {
     return noAuthFetch('/cache/clear', {
+        method: 'POST',
+    });
+}
+
+/**
+ * 获取临时目录统计
+ */
+export async function getTempStats(): Promise<ApiResponse<TempStats>> {
+    return noAuthFetch('/cache/temp-stats');
+}
+
+/**
+ * 清理临时目录
+ */
+export async function clearTempDir(): Promise<ApiResponse<{ deleted: number; errors: number }>> {
+    return noAuthFetch('/cache/temp-clear', {
         method: 'POST',
     });
 }
