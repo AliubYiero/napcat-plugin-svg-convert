@@ -16,6 +16,7 @@ const MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB 总缓存限制
 export class ImageCacheService {
     private ctx: NapCatPluginContext;
     private cacheDir: string;
+    private tempDir: string;
     private mapFilePath: string;
     private cacheMap: ImageCacheMap = {};
     private maxCacheSize: number = MAX_CACHE_SIZE;
@@ -23,6 +24,7 @@ export class ImageCacheService {
     constructor(ctx: NapCatPluginContext) {
         this.ctx = ctx;
         this.cacheDir = path.join(ctx.dataPath, CACHE_DIR_NAME);
+        this.tempDir = path.join(ctx.dataPath, 'temp');
         this.mapFilePath = path.join(ctx.dataPath, CACHE_MAP_FILE);
         this.ensureCacheDir();
         this.loadCacheMap();
@@ -391,6 +393,33 @@ export class ImageCacheService {
             }
             return { count, size };
         } catch {
+            return { count: 0, size: 0 };
+        }
+    }
+
+    /**
+     * 获取临时目录统计信息
+     */
+    getTempStats(): { count: number; size: number } {
+        try {
+            if (!fs.existsSync(this.tempDir)) {
+                return { count: 0, size: 0 };
+            }
+
+            let size = 0;
+            let count = 0;
+            const files = fs.readdirSync(this.tempDir);
+            for (const file of files) {
+                const filePath = path.join(this.tempDir, file);
+                const stats = fs.statSync(filePath);
+                if (stats.isFile()) {
+                    size += stats.size;
+                    count++;
+                }
+            }
+            return { count, size };
+        } catch (err) {
+            this.ctx.logger.warn('获取临时目录统计失败:', err);
             return { count: 0, size: 0 };
         }
     }
