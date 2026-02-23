@@ -79,7 +79,7 @@ export class SvgService {
             this.ctx.logger.debug('渲染完成');
 
             const pngBuffer = fs.readFileSync(outputPath);
-            return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+            return pngBuffer.toString('base64');
         } finally {
             // 清理所有临时文件（无论是否保存缓存，临时文件都应该被清理）
             this.cleanup(...downloadedImages);
