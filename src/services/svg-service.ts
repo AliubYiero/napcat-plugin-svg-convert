@@ -133,35 +133,35 @@ export class SvgService {
         // 处理所有图片
         const downloadPromises = matches.map(async ({ imageUrl }) => {
             let localPath: string | null = null;
-            let displayPath: string | null = null;  // 用于 SVG 中的相对路径
+            let displayPath: string | null = null;  // 用于 SVG 中的路径
 
             // 1. 无论 saveWebImage 如何，先检查缓存是否存在
             let cachedPath = this.imageCacheService.getCachedImagePath(imageUrl);
 
             if (cachedPath) {
-                // 缓存存在，直接使用
-                const { tempPath, displayPath: filename } = this.createTempFromCache(cachedPath);
-                localPath = tempPath;  // 用于清理
-                displayPath = filename;  // 相对路径用于 SVG
+                // 缓存存在，直接使用缓存路径（不复制到临时目录）
+                localPath = cachedPath;
+                displayPath = cachedPath;  // 使用绝对路径
+                this.ctx.logger.debug(`使用缓存图片: ${cachedPath}`);
             } else if (saveWebImage) {
                 // 缓存不存在，且需要保存 → 下载并缓存
                 cachedPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
                 if (cachedPath) {
-                    const { tempPath, displayPath: filename } = this.createTempFromCache(cachedPath);
-                    localPath = tempPath;
-                    displayPath = filename;
+                    localPath = cachedPath;
+                    displayPath = cachedPath;  // 使用绝对路径
                 }
             } else {
                 // 缓存不存在，且不需要保存 → 直接下载到临时目录
                 localPath = await this.downloadImageToTemp(imageUrl);
                 if (localPath) {
-                    displayPath = path.basename(localPath);
+                    displayPath = localPath;  // 使用绝对路径
+                    // 只有临时文件才加入清理列表
+                    downloadedFiles.push(localPath);
                 }
             }
 
             if (localPath && displayPath) {
-                downloadedFiles.push(localPath);
-                // 使用相对路径替换 SVG 中的 URL
+                // 使用绝对路径替换 SVG 中的 URL
                 processedSvg = processedSvg.split(imageUrl).join(displayPath);
             }
         });
@@ -172,50 +172,78 @@ export class SvgService {
     }
 
     /**
-     * 下载图片到临时目录
+     * 尝试下载图片
+     * @param imageUrl 图片 URL
+     * @returns 本地文件路径，下载失败返回 null
+     */
+    private async tryDownload(imageUrl: string): Promise<string | null> {
+        const url = new URL(imageUrl);
+        const ext = path.extname(url.pathname) || '.png';
+        const filename = `img_${crypto.randomUUID()}${ext}`;
+        const localPath = path.join(this.tempDir, filename);
+
+        // 使用 fetch 下载图片
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+
+        const response = await fetch(imageUrl, {
+            signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // 检查文件大小（最大 5MB）
+        const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+        if (buffer.length > MAX_IMAGE_SIZE) {
+            throw new Error('图片过大，最大支持 5MB');
+        }
+
+        // 保存到临时目录
+        fs.writeFileSync(localPath, buffer);
+        this.ctx.logger.debug(`图片已保存: ${localPath}`);
+
+        return localPath;
+    }
+
+    /**
+     * 下载图片到临时目录（带1次重试）
      * @param imageUrl 图片 URL
      * @returns 本地文件路径，下载失败返回 null
      */
     private async downloadImageToTemp(imageUrl: string): Promise<string | null> {
-        try {
-            const url = new URL(imageUrl);
-            const ext = path.extname(url.pathname) || '.png';
-            const filename = `img_${crypto.randomUUID()}${ext}`;
-            const localPath = path.join(this.tempDir, filename);
+        const MAX_RETRIES = 1;
 
-            this.ctx.logger.debug(`下载外部图片: ${imageUrl}`);
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                this.ctx.logger.debug(`下载外部图片: ${imageUrl}${attempt > 0 ? ` (第${attempt + 1}次尝试)` : ''}`);
 
-            // 使用 fetch 下载图片
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+                const result = await this.tryDownload(imageUrl);
+                if (result && attempt > 0) {
+                    this.ctx.logger.info(`图片下载重试成功: ${imageUrl}`);
+                }
+                return result;
+            } catch (err) {
+                const isLastAttempt = attempt >= MAX_RETRIES;
+                const errorMessage = err instanceof Error ? err.message : String(err);
 
-            const response = await fetch(imageUrl, {
-                signal: controller.signal,
-            });
-            clearTimeout(timeoutId);
+                if (isLastAttempt) {
+                    this.ctx.logger.warn(`下载图片失败（已重试${MAX_RETRIES}次）: ${imageUrl}，错误: ${errorMessage}`);
+                    return null;
+                }
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                // 不是最后一次尝试，等待1秒后重试
+                this.ctx.logger.warn(`下载图片失败，1秒后重试: ${imageUrl}，错误: ${errorMessage}`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
-
-            const arrayBuffer = await response.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-
-            // 检查文件大小（最大 5MB）
-            const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-            if (buffer.length > MAX_IMAGE_SIZE) {
-                throw new Error('图片过大，最大支持 5MB');
-            }
-
-            // 保存到临时目录
-            fs.writeFileSync(localPath, buffer);
-            this.ctx.logger.debug(`图片已保存: ${localPath}`);
-
-            return localPath;
-        } catch (err) {
-            this.ctx.logger.warn(`下载图片失败: ${imageUrl}`, err);
-            return null;
         }
+
+        return null; // 理论上不会执行到这里
     }
 
     private cleanup(...files: string[]): void {
