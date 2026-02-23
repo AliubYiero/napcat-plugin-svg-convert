@@ -2,7 +2,7 @@
 
 一个 NapCat 插件，提供 SVG 转 PNG 渲染功能。通过 WebUI 界面或 API 接口将 SVG 代码渲染为 PNG 图片，支持外部图片下载和缓存管理。
 
-## ✨ 功能特性
+## 功能特性
 
 - **SVG 转 PNG**: 使用 rsvg-convert 工具高质量渲染 SVG 为 PNG
 - **外部图片下载**: 自动下载 SVG 中引用的网络图片（`<image href="http://...">`）
@@ -13,7 +13,7 @@
 - **环境检测**: 自动检测 rsvg-convert 工具是否已安装
 - **安全防护**: 输入大小限制、执行超时、命令注入防护
 
-## 📁 项目结构
+## 项目结构
 
 ```
 napcat-plugin-svg-render/
@@ -43,7 +43,7 @@ napcat-plugin-svg-render/
 └── README.md
 ```
 
-## 🚀 快速开始
+##  快速开始
 
 ### 1. 安装依赖
 
@@ -87,7 +87,163 @@ pnpm run build
 pnpm run deploy
 ```
 
-## 🌐 API 接口
+### 6. 使用
+
+> 如果渲染出来的SVG图片为方框乱码, 请检查你的 Linux 系统中是否安装中文字体: 
+>
+> ```bash
+> # 安装文泉驿正黑
+> sudo apt install fonts-wqy-zenhei
+> # 安装思源字体
+> sudo apt install fonts-noto-cjk
+> ```
+
+**在其他插件调用SVG渲染示例**
+
+```ts
+/**
+* 调用 SVG 渲染插件接口
+* @param baseUrl NapCat 基础 URL，如 http://127.0.0.1:6099
+* @param svgCode SVG 代码字符串
+* @param saveWebImage 是否缓存网络图片（可选，默认 false）
+*/
+async function renderSvg(
+   baseUrl: string,
+   svgCode: string,
+   saveWebImage: boolean = false
+): Promise<{ success: boolean; imageBase64?: string; message?: string }> {
+
+   const url = `${baseUrl}/plugin/napcat-plugin-svg-render/api/svg/render`;
+
+   try {
+       const response = await fetch(url, {
+           method: 'POST',
+           headers: {
+               'Content-Type': 'application/json',
+           },
+           body: JSON.stringify({
+               svg: svgCode,
+               saveWebImage: saveWebImage,
+           }),
+       });
+
+       const result = await response.json() as {
+           code: number;
+           data?: { imageBase64: string; format: string };
+           message?: string;
+       };
+
+       if (result.code === 0 && result.data) {
+           return {
+               success: true,
+               imageBase64: result.data.imageBase64,
+           };
+       } else {
+           return {
+               success: false,
+               message: result.message || '渲染失败',
+           };
+       }
+   } catch (error) {
+       return {
+           success: false,
+           message: error instanceof Error ? error.message : String(error),
+       };
+   }
+}
+```
+
+---
+
+**使用示例**
+
+```ts
+// 示例 1：基本使用
+const svgCode = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+   <rect width="100" height="100" fill="red"/>
+</svg>`;
+
+const result = await renderSvg('http://127.0.0.1:6099', svgCode);
+if (result.success) {
+   // result.imageBase64 就是 PNG 图片的 base64 字符串
+   console.log('渲染成功:', result.imageBase64.substring(0, 50) + '...');
+}
+
+// 示例 2：包含网络图片的 SVG（启用缓存）
+const svgWithImage = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+   <image href="https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg" width="200" height="200"/>
+   <text x="50%" y="50%" text-anchor="middle" fill="white">Hello</text>
+</svg>`;
+
+const result2 = await renderSvg('http://127.0.0.1:6099', svgWithImage, true);
+// 设置 saveWebImage 为 true 会将网络图片缓存，下次渲染更快
+```
+
+---
+
+**发送图片消息**
+
+> ```ts
+> /**
+>  * 发送消息（通用）
+>  * 根据消息类型自动发送到群或私聊
+>  *
+>  * @param ctx 插件上下文
+>  * @param event 原始消息事件（用于推断回复目标）
+>  * @param message 消息内容（支持字符串或消息段数组）
+>  */
+> export async function sendReply(
+>     ctx: NapCatPluginContext,
+>     event: OB11Message,
+>     message: OB11MessageMixType,
+> ): Promise<boolean> {
+>     try {
+>         const params: OB11PostSendMsg = {
+>             message: message as unknown as any,
+>             message_type: event.message_type,
+>             ...(event.message_type === 'group' && event.group_id
+>                 ? { group_id: String(event.group_id) }
+>                 : {}),
+>             ...(event.message_type === 'private' && event.user_id
+>                 ? { user_id: String(event.user_id) }
+>                 : {}),
+>         };
+>         await ctx.actions.call('send_msg', params, ctx.adapterName, ctx.pluginManager.config);
+>         return true;
+>     } catch (error) {
+>         pluginState.logger.error('发送消息失败:', error);
+>         return false;
+>     }
+> }
+> ```
+
+```ts
+/**
+ * 创建图片消息段
+ */
+export function createImageMessage(file: string): { type: 'image'; data: { file: string } } {
+    return {
+        type: 'image',
+        data: { file }
+    };
+}
+
+// 创建图片
+const svgCode = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+   <rect width="100" height="100" fill="red"/>
+</svg>`;
+const result = await renderSvg('http://127.0.0.1:6099', svgCode);
+
+// 发送图片 (base64编码格式图片)
+if (result.success) {
+	const imageMessage = createImageMessage(`base64://${result.imageBase64}`);
+	await sendReply(ctx, event, imageMessage);
+}
+```
+
+
+
+## API 接口
 
 ### 基础信息
 
@@ -121,6 +277,9 @@ Content-Type: application/json
   }
 }
 ```
+
+
+
 
 ### 服务状态
 
@@ -205,7 +364,7 @@ GET /plugin/napcat-plugin-svg-render/api/cache/image?url=https://example.com/ima
 
 详细 API 文档请查看 [docs/API.md](docs/API.md)。
 
-## 🖥️ WebUI 使用
+## WebUI 使用
 
 ### SVG 渲染
 
@@ -230,7 +389,7 @@ GET /plugin/napcat-plugin-svg-render/api/cache/image?url=https://example.com/ima
 
 点击 "API文档" 标签查看完整的 API 接口文档。
 
-## ⚙️ 配置说明
+## 配置说明
 
 ### 缓存目录
 
@@ -249,7 +408,7 @@ GET /plugin/napcat-plugin-svg-render/api/cache/image?url=https://example.com/ima
 | 渲染超时 | 30秒 | 防止复杂 SVG 阻塞 |
 | 最大缓存 | 50MB | 可配置 (10-500MB) |
 
-## 🛠️ 开发
+## 开发
 
 ### 开发命令
 
@@ -276,6 +435,6 @@ pnpm run deploy
 - **前端**: React 18, TypeScript, TailwindCSS
 - **渲染**: rsvg-convert (librsvg)
 
-## 📄 许可证
+## 许可证
 
-MIT License
+GPL-3
