@@ -90,8 +90,8 @@ Content-Type: application/json
 {
   "code": 0,
   "data": {
-    "imageBase64": "data:image/png;base64,iVBORw0KG...",
-    "format": "png"
+    "imageBase64": "iVBORw0KG...",
+    "format": "image/png"
   }
 }
 ```
@@ -100,8 +100,8 @@ Content-Type: application/json
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| imageBase64 | string | Base64 编码的 PNG 图片（包含 data:image/png;base64, 前缀） |
-| format | string | 图片格式（固定为 "png"） |
+| imageBase64 | string | Base64 编码的 PNG 图片（不包含 data URI 前缀） |
+| format | string | 图片格式（固定为 "image/png"） |
 
 **错误响应**:
 
@@ -130,9 +130,10 @@ Content-Type: application/json
 
 当 SVG 中包含 `<image href="http://...">` 或 `<image xlink:href="http://...">` 时：
 
-- 插件会自动下载网络图片
+- 插件会自动下载网络图片，下载失败时会自动重试 1 次
 - 如果 `saveWebImage` 为 `true`，图片会被保存到缓存目录，下次直接使用
 - 如果 `saveWebImage` 为 `false` 或未指定，图片下载到临时目录，渲染后删除
+- 如果缓存已存在，直接使用缓存路径，不再复制到临时目录
 
 **使用示例**:
 
@@ -452,3 +453,4 @@ if (cacheData.code === 0) {
    - 渲染输出最大 10MB
    - 单个网络图片最大 5MB
 4. **缓存清理**: 当缓存超过设定大小时，会自动删除最旧的文件
+5. **下载重试**: 网络图片下载失败时会自动重试 1 次（等待 1 秒后重试）

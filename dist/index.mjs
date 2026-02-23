@@ -9,12 +9,14 @@ const MAX_CACHE_SIZE = 50 * 1024 * 1024;
 class ImageCacheService {
   ctx;
   cacheDir;
+  tempDir;
   mapFilePath;
   cacheMap = {};
   maxCacheSize = MAX_CACHE_SIZE;
   constructor(ctx) {
     this.ctx = ctx;
     this.cacheDir = path.join(ctx.dataPath, CACHE_DIR_NAME);
+    this.tempDir = path.join(ctx.dataPath, "temp");
     this.mapFilePath = path.join(ctx.dataPath, CACHE_MAP_FILE);
     this.ensureCacheDir();
     this.loadCacheMap();
@@ -319,6 +321,62 @@ class ImageCacheService {
       return { count: 0, size: 0 };
     }
   }
+  /**
+   * 获取临时目录统计信息
+   */
+  getTempStats() {
+    try {
+      if (!fs.existsSync(this.tempDir)) {
+        return { count: 0, size: 0 };
+      }
+      let size = 0;
+      let count = 0;
+      const files = fs.readdirSync(this.tempDir);
+      for (const file of files) {
+        const filePath = path.join(this.tempDir, file);
+        const stats = fs.statSync(filePath);
+        if (stats.isFile()) {
+          size += stats.size;
+          count++;
+        }
+      }
+      return { count, size };
+    } catch (err) {
+      this.ctx.logger.warn("获取临时目录统计失败:", err);
+      return { count: 0, size: 0 };
+    }
+  }
+  /**
+   * 清理临时目录中的所有文件
+   */
+  clearTempDir() {
+    let deleted = 0;
+    let errors = 0;
+    try {
+      if (!fs.existsSync(this.tempDir)) {
+        return { deleted: 0, errors: 0 };
+      }
+      const files = fs.readdirSync(this.tempDir);
+      for (const file of files) {
+        try {
+          const filePath = path.join(this.tempDir, file);
+          const stats = fs.statSync(filePath);
+          if (stats.isFile()) {
+            fs.unlinkSync(filePath);
+            deleted++;
+          }
+        } catch (err) {
+          errors++;
+          this.ctx.logger.warn(`删除临时文件失败: ${file}`, err);
+        }
+      }
+      this.ctx.logger.info(`清理临时目录完成: ${deleted} 成功, ${errors} 失败`);
+      return { deleted, errors };
+    } catch (err) {
+      this.ctx.logger.warn("清理临时目录失败:", err);
+      return { deleted, errors };
+    }
+  }
 }
 
 const MAX_OUTPUT_SIZE = 10 * 1024 * 1024;
@@ -373,11 +431,9 @@ class SvgService {
       }
       this.ctx.logger.debug("渲染完成");
       const pngBuffer = fs.readFileSync(outputPath);
-      return `data:image/png;base64,${pngBuffer.toString("base64")}`;
+      return pngBuffer.toString("base64");
     } finally {
-      if (!saveWebImage) {
-        this.cleanup(...downloadedImages);
-      }
+      this.cleanup(...downloadedImages);
       this.cleanup(inputPath, outputPath);
     }
   }
@@ -408,7 +464,7 @@ class SvgService {
     while ((match = imageRegex.exec(svgContent)) !== null) {
       matches.push({
         fullTag: match[0],
-        imageUrl: match[1]
+        imageUrl: match[1].trim()
       });
     }
     if (matches.length === 0) {
@@ -420,24 +476,23 @@ class SvgService {
       let displayPath = null;
       let cachedPath = this.imageCacheService.getCachedImagePath(imageUrl);
       if (cachedPath) {
-        const { tempPath, displayPath: filename } = this.createTempFromCache(cachedPath);
-        localPath = tempPath;
-        displayPath = filename;
+        localPath = cachedPath;
+        displayPath = cachedPath;
+        this.ctx.logger.debug(`使用缓存图片: ${cachedPath}`);
       } else if (saveWebImage) {
         cachedPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
         if (cachedPath) {
-          const { tempPath, displayPath: filename } = this.createTempFromCache(cachedPath);
-          localPath = tempPath;
-          displayPath = filename;
+          localPath = cachedPath;
+          displayPath = cachedPath;
         }
       } else {
         localPath = await this.downloadImageToTemp(imageUrl);
         if (localPath) {
-          displayPath = path.basename(localPath);
+          displayPath = localPath;
+          downloadedFiles.push(localPath);
         }
       }
       if (localPath && displayPath) {
-        downloadedFiles.push(localPath);
         processedSvg = processedSvg.split(imageUrl).join(displayPath);
       }
     });
@@ -445,39 +500,61 @@ class SvgService {
     return { processedSvg, downloadedFiles };
   }
   /**
-   * 下载图片到临时目录
+   * 尝试下载图片
+   * @param imageUrl 图片 URL
+   * @returns 本地文件路径，下载失败返回 null
+   */
+  async tryDownload(imageUrl) {
+    const url = new URL(imageUrl);
+    const ext = path.extname(url.pathname) || ".png";
+    const filename = `img_${crypto.randomUUID()}${ext}`;
+    const localPath = path.join(this.tempDir, filename);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3e4);
+    const response = await fetch(imageUrl, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+    if (buffer.length > MAX_IMAGE_SIZE) {
+      throw new Error("图片过大，最大支持 5MB");
+    }
+    fs.writeFileSync(localPath, buffer);
+    this.ctx.logger.debug(`图片已保存: ${localPath}`);
+    return localPath;
+  }
+  /**
+   * 下载图片到临时目录（带1次重试）
    * @param imageUrl 图片 URL
    * @returns 本地文件路径，下载失败返回 null
    */
   async downloadImageToTemp(imageUrl) {
-    try {
-      const url = new URL(imageUrl);
-      const ext = path.extname(url.pathname) || ".png";
-      const filename = `img_${crypto.randomUUID()}${ext}`;
-      const localPath = path.join(this.tempDir, filename);
-      this.ctx.logger.debug(`下载外部图片: ${imageUrl}`);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3e4);
-      const response = await fetch(imageUrl, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+    const MAX_RETRIES = 1;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        this.ctx.logger.debug(`下载外部图片: ${imageUrl}${attempt > 0 ? ` (第${attempt + 1}次尝试)` : ""}`);
+        const result = await this.tryDownload(imageUrl);
+        if (result && attempt > 0) {
+          this.ctx.logger.info(`图片下载重试成功: ${imageUrl}`);
+        }
+        return result;
+      } catch (err) {
+        const isLastAttempt = attempt >= MAX_RETRIES;
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        if (isLastAttempt) {
+          this.ctx.logger.warn(`下载图片失败（已重试${MAX_RETRIES}次）: ${imageUrl}，错误: ${errorMessage}`);
+          return null;
+        }
+        this.ctx.logger.warn(`下载图片失败，1秒后重试: ${imageUrl}，错误: ${errorMessage}`);
+        await new Promise((resolve) => setTimeout(resolve, 1e3));
       }
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-      if (buffer.length > MAX_IMAGE_SIZE) {
-        throw new Error("图片过大，最大支持 5MB");
-      }
-      fs.writeFileSync(localPath, buffer);
-      this.ctx.logger.debug(`图片已保存: ${localPath}`);
-      return localPath;
-    } catch (err) {
-      this.ctx.logger.warn(`下载图片失败: ${imageUrl}`, err);
-      return null;
     }
+    return null;
   }
   cleanup(...files) {
     for (const file of files) {
@@ -648,7 +725,7 @@ function registerApiRoutes(ctx) {
         code: 0,
         data: {
           imageBase64,
-          format: "png"
+          format: "image/png"
         }
       });
     } catch (err) {
@@ -738,6 +815,31 @@ function registerApiRoutes(ctx) {
       });
     } catch (err) {
       ctx.logger.error("清空缓存失败:", err);
+      res.status(500).json({ code: -1, message: String(err) });
+    }
+  });
+  router.getNoAuth("/cache/temp-stats", async (_req, res) => {
+    try {
+      const stats = imageCacheService.getTempStats();
+      res.json({
+        code: 0,
+        data: stats
+      });
+    } catch (err) {
+      ctx.logger.error("获取临时目录统计失败:", err);
+      res.status(500).json({ code: -1, message: String(err) });
+    }
+  });
+  router.postNoAuth("/cache/temp-clear", async (_req, res) => {
+    try {
+      const result = imageCacheService.clearTempDir();
+      res.json({
+        code: 0,
+        data: result,
+        message: `已清理 ${result.deleted} 个临时文件，失败 ${result.errors} 个`
+      });
+    } catch (err) {
+      ctx.logger.error("清理临时目录失败:", err);
       res.status(500).json({ code: -1, message: String(err) });
     }
   });

@@ -47,8 +47,8 @@ const apiEndpoints: ApiEndpoint[] = [
         response: {
             code: 0,
             data: {
-                imageBase64: 'data:image/png;base64,iVBORw0KG...',
-                format: 'png'
+                imageBase64: 'iVBORw0KG...',
+                format: 'image/png'
             }
         },
         example: {
@@ -59,8 +59,8 @@ const apiEndpoints: ApiEndpoint[] = [
             response: {
                 code: 0,
                 data: {
-                    imageBase64: 'data:image/png;base64,iVBORw0KG...',
-                    format: 'png'
+                    imageBase64: 'iVBORw0KG...',
+                    format: 'image/png'
                 }
             }
         }
