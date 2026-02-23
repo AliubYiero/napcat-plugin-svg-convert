@@ -122,7 +122,7 @@ export class SvgService {
         while ((match = imageRegex.exec(svgContent)) !== null) {
             matches.push({
                 fullTag: match[0],
-                imageUrl: match[1],
+                imageUrl: match[1].trim(),
             });
         }
 
