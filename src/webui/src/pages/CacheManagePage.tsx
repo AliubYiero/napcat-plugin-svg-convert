@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getCacheList, deleteCache, clearAllCache, updateCacheSettings, viewCacheImage } from '../utils/api';
+import { getCacheList, deleteCache, clearAllCache, updateCacheSettings, viewCacheImage, getTempStats, clearTempDir } from '../utils/api';
 import { showToast } from '../hooks/useToast';
 
 interface CacheItem {
@@ -17,6 +17,7 @@ interface CacheStats {
 export function CacheManagePage() {
     const [cacheList, setCacheList] = useState<CacheItem[]>([]);
     const [stats, setStats] = useState<CacheStats>({ count: 0, size: 0 });
+    const [tempStats, setTempStats] = useState<{ count: number; size: number }>({ count: 0, size: 0 });
     const [maxSize, setMaxSize] = useState(50);
     const [isLoading, setIsLoading] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -25,13 +26,22 @@ export function CacheManagePage() {
     const loadCacheList = useCallback(async () => {
         setIsLoading(true);
         try {
-            const res = await getCacheList();
-            if (res.code === 0 && res.data) {
-                setCacheList(res.data.list);
-                setStats(res.data.stats);
-                setMaxSize(res.data.maxSize);
+            // 同时获取缓存列表和临时目录统计
+            const [cacheRes, tempRes] = await Promise.all([
+                getCacheList(),
+                getTempStats()
+            ]);
+
+            if (cacheRes.code === 0 && cacheRes.data) {
+                setCacheList(cacheRes.data.list);
+                setStats(cacheRes.data.stats);
+                setMaxSize(cacheRes.data.maxSize);
             } else {
-                showToast(res.message || '获取缓存列表失败', 'error');
+                showToast(cacheRes.message || '获取缓存列表失败', 'error');
+            }
+
+            if (tempRes.code === 0 && tempRes.data) {
+                setTempStats(tempRes.data);
             }
         } catch {
             showToast('获取缓存列表失败', 'error');
@@ -62,7 +72,7 @@ export function CacheManagePage() {
         if (!confirm('确定要清空所有缓存吗？此操作不可恢复。')) {
             return;
         }
-        
+
         try {
             const res = await clearAllCache();
             if (res.code === 0) {
@@ -73,6 +83,24 @@ export function CacheManagePage() {
             }
         } catch {
             showToast('清空失败', 'error');
+        }
+    };
+
+    const handleClearTemp = async () => {
+        if (!confirm('确定要清理临时文件夹吗？此操作不可恢复。')) {
+            return;
+        }
+
+        try {
+            const res = await clearTempDir();
+            if (res.code === 0) {
+                showToast(`已清理 ${res.data?.deleted ?? 0} 个临时文件`, 'success');
+                loadCacheList();  // 刷新统计
+            } else {
+                showToast(res.message || '清理失败', 'error');
+            }
+        } catch {
+            showToast('清理失败', 'error');
         }
     };
 
@@ -126,7 +154,8 @@ export function CacheManagePage() {
             </div>
 
             {/* 统计卡片 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                {/* 原有的3个卡片 */}
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                     <h3 className="text-sm text-blue-600 dark:text-blue-300">缓存数量</h3>
                     <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.count}</p>
@@ -138,6 +167,16 @@ export function CacheManagePage() {
                 <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                     <h3 className="text-sm text-purple-600 dark:text-purple-300">最大限制</h3>
                     <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{maxSize} MB</p>
+                </div>
+
+                {/* 新增的临时目录统计卡片 */}
+                <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <h3 className="text-sm text-orange-600 dark:text-orange-300">临时文件数量</h3>
+                    <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{tempStats.count}</p>
+                </div>
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <h3 className="text-sm text-yellow-600 dark:text-yellow-300">临时文件夹大小</h3>
+                    <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">{formatSize(tempStats.size)}</p>
                 </div>
             </div>
 
@@ -180,12 +219,20 @@ export function CacheManagePage() {
                 >
                     {isLoading ? '刷新中...' : '刷新列表'}
                 </button>
-                <button
-                    onClick={handleClearAll}
-                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-                >
-                    清空所有缓存
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleClearTemp}
+                        className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+                    >
+                        清理临时文件夹
+                    </button>
+                    <button
+                        onClick={handleClearAll}
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                    >
+                        清空所有缓存
+                    </button>
+                </div>
             </div>
 
             {/* 缓存列表 */}
