@@ -41,7 +41,9 @@ export function SvgRenderPage() {
         try {
             const res = await renderSvg(svgInput, cacheWebImages);
             if (res.code === 0 && res.data) {
-                setRenderedImage(res.data.imageBase64);
+                // 使用 format 和 imageBase64 构造 Data URL
+                const dataUrl = `data:${res.data.format};base64,${res.data.imageBase64}`;
+                setRenderedImage(dataUrl);
                 showToast('渲染成功', 'success');
             } else {
                 showToast(res.message || '渲染失败', 'error');
