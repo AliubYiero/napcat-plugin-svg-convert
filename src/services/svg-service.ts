@@ -139,10 +139,12 @@ export class SvgService {
             let cachedPath = this.imageCacheService.getCachedImagePath(imageUrl);
 
             if (cachedPath) {
-                // 缓存存在，直接使用缓存路径（不复制到临时目录）
-                localPath = cachedPath;
-                displayPath = cachedPath;  // 使用绝对路径
-                this.ctx.logger.debug(`使用缓存图片: ${cachedPath}`);
+                // 缓存存在，复制到临时目录（避免并发问题和缓存锁定）
+                const { tempPath, displayPath: tempDisplayPath } = this.createTempFromCache(cachedPath);
+                localPath = tempPath;
+                displayPath = tempDisplayPath;
+                downloadedFiles.push(tempPath); // 加入清理列表，渲染后删除
+                this.ctx.logger.debug(`缓存图片已复制到临时文件: ${tempPath}`);
             } else if (saveWebImage) {
                 // 缓存不存在，且需要保存 → 下载并缓存
                 cachedPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
