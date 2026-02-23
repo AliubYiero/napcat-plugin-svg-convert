@@ -81,10 +81,8 @@ export class SvgService {
             const pngBuffer = fs.readFileSync(outputPath);
             return `data:image/png;base64,${pngBuffer.toString('base64')}`;
         } finally {
-            // 如果不保存缓存，清理临时下载的文件
-            if (!saveWebImage) {
-                this.cleanup(...downloadedImages);
-            }
+            // 清理所有临时文件（无论是否保存缓存，临时文件都应该被清理）
+            this.cleanup(...downloadedImages);
             this.cleanup(inputPath, outputPath);
         }
     }
