@@ -164,5 +164,20 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
         }
     });
 
+    /** 获取临时目录统计 */
+    router.getNoAuth('/cache/temp-stats', async (_req, res) => {
+        try {
+            const stats = imageCacheService.getTempStats();
+
+            res.json({
+                code: 0,
+                data: stats,
+            });
+        } catch (err) {
+            ctx.logger.error('获取临时目录统计失败:', err);
+            res.status(500).json({ code: -1, message: String(err) });
+        }
+    });
+
     ctx.logger.debug('API 路由注册完成');
 }
