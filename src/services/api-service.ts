@@ -48,7 +48,7 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
                 code: 0,
                 data: {
                     imageBase64,
-                    format: 'png',
+                    format: 'image/png',
                 },
             });
         } catch (err) {
