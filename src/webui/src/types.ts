@@ -20,7 +20,7 @@ export interface SvgRenderRequest {
 // SVG 渲染响应
 export interface SvgRenderResponse {
     imageBase64: string
-    format: 'png'
+    format: string  // MIME 类型，如 "image/png"
 }
 
 // SVG 服务状态
