@@ -209,7 +209,27 @@ class ImageCacheService {
       this.ctx.logger.debug(`缓存命中: ${imageUrl}`);
       return this.cacheMap[imageUrl];
     }
-    const localPath = await this.downloadImage(imageUrl);
+    const MAX_RETRIES = 1;
+    let localPath = null;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        this.ctx.logger.debug(`下载网络图片: ${imageUrl}${attempt > 0 ? ` (第${attempt + 1}次尝试)` : ""}`);
+        localPath = await this.downloadImage(imageUrl);
+        if (localPath && attempt > 0) {
+          this.ctx.logger.info(`图片下载重试成功: ${imageUrl}`);
+        }
+        break;
+      } catch (err) {
+        const isLastAttempt = attempt >= MAX_RETRIES;
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        if (isLastAttempt) {
+          this.ctx.logger.warn(`下载图片失败（已重试${MAX_RETRIES}次）: ${imageUrl}，错误: ${errorMessage}`);
+          break;
+        }
+        this.ctx.logger.warn(`下载图片失败，1秒后重试: ${imageUrl}，错误: ${errorMessage}`);
+        await new Promise((resolve) => setTimeout(resolve, 1e3));
+      }
+    }
     if (localPath) {
       this.cacheMap[imageUrl] = localPath;
       this.saveCacheMap();
@@ -476,9 +496,11 @@ class SvgService {
       let displayPath = null;
       let cachedPath = this.imageCacheService.getCachedImagePath(imageUrl);
       if (cachedPath) {
-        localPath = cachedPath;
-        displayPath = cachedPath;
-        this.ctx.logger.debug(`使用缓存图片: ${cachedPath}`);
+        const { tempPath, displayPath: tempDisplayPath } = this.createTempFromCache(cachedPath);
+        localPath = tempPath;
+        displayPath = tempDisplayPath;
+        downloadedFiles.push(tempPath);
+        this.ctx.logger.debug(`缓存图片已复制到临时文件: ${tempPath}`);
       } else if (saveWebImage) {
         cachedPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
         if (cachedPath) {

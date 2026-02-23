@@ -253,8 +253,31 @@ export class ImageCacheService {
             return this.cacheMap[imageUrl];
         }
 
-        // 2. 下载图片
-        const localPath = await this.downloadImage(imageUrl);
+        // 2. 下载图片（带重试机制）
+        const MAX_RETRIES = 1;
+        let localPath: string | null = null;
+
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                this.ctx.logger.debug(`下载网络图片: ${imageUrl}${attempt > 0 ? ` (第${attempt + 1}次尝试)` : ''}`);
+                localPath = await this.downloadImage(imageUrl);
+                if (localPath && attempt > 0) {
+                    this.ctx.logger.info(`图片下载重试成功: ${imageUrl}`);
+                }
+                break; // 下载成功，跳出循环
+            } catch (err) {
+                const isLastAttempt = attempt >= MAX_RETRIES;
+                const errorMessage = err instanceof Error ? err.message : String(err);
+
+                if (isLastAttempt) {
+                    this.ctx.logger.warn(`下载图片失败（已重试${MAX_RETRIES}次）: ${imageUrl}，错误: ${errorMessage}`);
+                    break;
+                }
+                this.ctx.logger.warn(`下载图片失败，1秒后重试: ${imageUrl}，错误: ${errorMessage}`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+
         if (localPath) {
             // 3. 更新映射表
             this.cacheMap[imageUrl] = localPath;
