@@ -149,8 +149,12 @@ export class SvgService {
                 // 缓存不存在，且需要保存 → 下载并缓存
                 cachedPath = await this.imageCacheService.getOrDownloadImage(imageUrl);
                 if (cachedPath) {
-                    localPath = cachedPath;
-                    displayPath = cachedPath;  // 使用绝对路径
+                    // 统一处理：复制到 temp 目录用于渲染，避免直接使用 cache 路径
+                    const { tempPath, displayPath: tempDisplayPath } = this.createTempFromCache(cachedPath);
+                    localPath = tempPath;
+                    displayPath = tempDisplayPath;
+                    downloadedFiles.push(tempPath); // 加入清理列表，渲染后删除
+                    this.ctx.logger.debug(`缓存图片已复制到临时文件: ${tempPath}`);
                 }
             } else {
                 // 缓存不存在，且不需要保存 → 直接下载到临时目录
