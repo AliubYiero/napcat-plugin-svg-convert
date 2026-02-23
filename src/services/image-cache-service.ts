@@ -423,4 +423,39 @@ export class ImageCacheService {
             return { count: 0, size: 0 };
         }
     }
+
+    /**
+     * 清理临时目录中的所有文件
+     */
+    clearTempDir(): { deleted: number; errors: number } {
+        let deleted = 0;
+        let errors = 0;
+
+        try {
+            if (!fs.existsSync(this.tempDir)) {
+                return { deleted: 0, errors: 0 };
+            }
+
+            const files = fs.readdirSync(this.tempDir);
+            for (const file of files) {
+                try {
+                    const filePath = path.join(this.tempDir, file);
+                    const stats = fs.statSync(filePath);
+                    if (stats.isFile()) {
+                        fs.unlinkSync(filePath);
+                        deleted++;
+                    }
+                } catch (err) {
+                    errors++;
+                    this.ctx.logger.warn(`删除临时文件失败: ${file}`, err);
+                }
+            }
+
+            this.ctx.logger.info(`清理临时目录完成: ${deleted} 成功, ${errors} 失败`);
+            return { deleted, errors };
+        } catch (err) {
+            this.ctx.logger.warn('清理临时目录失败:', err);
+            return { deleted, errors };
+        }
+    }
 }
