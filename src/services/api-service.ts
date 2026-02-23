@@ -179,5 +179,21 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
         }
     });
 
+    /** 清理临时目录 */
+    router.postNoAuth('/cache/temp-clear', async (_req, res) => {
+        try {
+            const result = imageCacheService.clearTempDir();
+
+            res.json({
+                code: 0,
+                data: result,
+                message: `已清理 ${result.deleted} 个临时文件，失败 ${result.errors} 个`,
+            });
+        } catch (err) {
+            ctx.logger.error('清理临时目录失败:', err);
+            res.status(500).json({ code: -1, message: String(err) });
+        }
+    });
+
     ctx.logger.debug('API 路由注册完成');
 }
