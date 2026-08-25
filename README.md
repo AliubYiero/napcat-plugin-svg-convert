@@ -27,6 +27,7 @@ napcat-plugin-svg-render/
 │   │   ├── api-service.ts    # API 路由
 │   │   ├── svg-service.ts    # SVG 渲染服务
 │   │   └── image-cache-service.ts  # 图片缓存服务
+│   │   └── char-service.ts	  # 字符宽度辅助计算服务
 │   └── webui/                # React 前端
 │       └── src/
 │           ├── pages/
@@ -288,12 +289,36 @@ GET /plugin/napcat-plugin-svg-render/api/svg/status
 ```
 
 **响应**:
+
 ```json
 {
   "code": 0,
   "data": {
     "installed": true,
     "version": "rsvg-convert version 2.50.0"
+  }
+}
+```
+
+### 字符计算
+
+```http
+POST /plugin/napcat-plugin-svg-render/api/char/width
+Content-Type: application/json
+
+{
+  "text": "******",
+  "fontSize": 18
+}
+```
+
+**响应**:
+
+```json
+{
+  "code": 0,
+  "data": {
+    "totalWidth": 47.25,
   }
 }
 ```

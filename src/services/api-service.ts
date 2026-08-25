@@ -10,6 +10,7 @@ import type {
 } from 'napcat-types/napcat-onebot/network/plugin/types';
 import { SvgService } from './svg-service';
 import { ImageCacheService } from './image-cache-service';
+import { CharService } from './char-service';
 
 /**
  * 注册 API 路由
@@ -17,6 +18,7 @@ import { ImageCacheService } from './image-cache-service';
 export function registerApiRoutes(ctx: NapCatPluginContext): void {
     const router = ctx.router;
     const svgService = new SvgService(ctx);
+    const charService = new CharService(ctx);
     const imageCacheService = new ImageCacheService(ctx);
 
     // ==================== SVG 渲染服务（无鉴权）====================
@@ -57,7 +59,25 @@ export function registerApiRoutes(ctx: NapCatPluginContext): void {
             res.status(500).json({ code: -1, message });
         }
     });
-
+    
+    // ==================== 字符计算服务（无鉴权）====================
+    
+    router.postNoAuth('/char/width',  async (req, res) => {
+        try {
+            const body = req.body as { text: string, fontSize?: number } | undefined;
+            
+            if (!body || !body.text) {
+                return res.status(400).json({ code: -1, message: '缺少 text 参数' });
+            }
+            
+            const status = charService.calculateTextWidth(body.text, body.fontSize);
+            res.json({ code: 0, data: status });
+        } catch (err) {
+            ctx.logger.error('计算文本长度失败:', err);
+            res.status(500).json({ code: -1, message: String(err) });
+        }
+    });
+    
     // ==================== 缓存管理 API ====================
 
     /** 获取缓存列表 */

@@ -34,3 +34,14 @@ export interface TempStats {
     count: number
     size: number
 }
+
+// 计算字符宽度请求
+export interface CharWidthRequest {
+    text: string,
+    fontSize: number,
+}
+
+// 计算字符宽度响应
+export interface CharWidthResponse {
+    totalWidth: number,
+}

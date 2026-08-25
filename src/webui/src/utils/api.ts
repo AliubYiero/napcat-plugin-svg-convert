@@ -1,4 +1,11 @@
-import type { ApiResponse, SvgRenderRequest, SvgRenderResponse, SvgServiceStatus, TempStats } from '../types'
+import {
+    ApiResponse,
+    CharWidthRequest, CharWidthResponse,
+    SvgRenderRequest,
+    SvgRenderResponse,
+    SvgServiceStatus,
+    TempStats,
+} from '../types';
 
 function resolvePluginName(): string {
     if (window.__PLUGIN_NAME__) return window.__PLUGIN_NAME__
@@ -85,6 +92,26 @@ export async function renderSvg(
     }
 
     return noAuthFetch<SvgRenderResponse>('/svg/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+}
+
+
+/**
+ * 计算字符宽度
+ */
+export async function calculateTextWidth(
+    text: string,
+    fontSize: number = 16
+): Promise<ApiResponse<CharWidthResponse>> {
+    const body: CharWidthRequest = {
+        text,
+        fontSize
+    };
+
+    return noAuthFetch<CharWidthResponse>('/char/width', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@chenglou/pretext':
-        specifier: ^0.0.8
-        version: 0.0.8
       napcat-types:
         specifier: 0.0.16
         version: 0.0.16
@@ -24,6 +21,9 @@ importers:
       '@types/node':
         specifier: ^20.19.33
         version: 20.19.33
+      char-width:
+        specifier: ^1.0.0
+        version: 1.0.0
       napcat-plugin-debug-cli:
         specifier: ^1.2.8
         version: 1.2.8(vite@6.4.1(@types/node@20.19.33))(ws@8.19.0)
@@ -38,9 +38,6 @@ importers:
         version: 8.19.0
 
 packages:
-
-  '@chenglou/pretext@0.0.8':
-    resolution: {integrity: sha512-yqm2GMxnPI7VHcHwe84P8ZF0JK/2d2DMKPqMN+s95jQhwDMYYXKVFVJUMEaVWckQStdsjdLav/0Vu+d9YbtGxA==}
 
   '@esbuild/aix-ppc64@0.25.12':
     resolution: {integrity: sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA==}
@@ -396,6 +393,9 @@ packages:
   '@types/serve-static@2.2.0':
     resolution: {integrity: sha512-8mam4H1NHLtu7nmtalF7eyBH14QyOASmcxHhSfEoRyr0nP/YdoesEtU+uSRvMe96TW/HPTtkoKqQLl53N7UXMQ==}
 
+  char-width@1.0.0:
+    resolution: {integrity: sha512-d82CdiyM1U6MNtiUOu9bOTCqu95x3dFz9q3frXwe/1+YnavIDEiLryaD7cgYziGzcXqNU27x8kvJ7FAj8NthVg==}
+
   deepmerge@4.3.1:
     resolution: {integrity: sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A==}
     engines: {node: '>=0.10.0'}
@@ -551,8 +551,6 @@ packages:
         optional: true
 
 snapshots:
-
-  '@chenglou/pretext@0.0.8': {}
 
   '@esbuild/aix-ppc64@0.25.12':
     optional: true
@@ -775,6 +773,8 @@ snapshots:
     dependencies:
       '@types/http-errors': 2.0.5
       '@types/node': 20.19.33
+
+  char-width@1.0.0: {}
 
   deepmerge@4.3.1: {}
 

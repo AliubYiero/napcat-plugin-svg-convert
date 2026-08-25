@@ -64,6 +64,38 @@ const apiEndpoints: ApiEndpoint[] = [
                 }
             }
         }
+    },
+    {
+        method: 'POST',
+        path: '/char/width',
+        description: '预估输入字符串的宽度, 用于动态渲染 svg 时计算 svg 容器的宽度',
+        params: [
+            { name: 'text', type: 'string', required: true, description: '要进行计算的字符串' },
+            {
+                name: 'fontSize',
+                type: 'number',
+                required: false,
+                description: '字体大小, 默认为 16px'
+            }
+        ],
+        response: {
+            code: 0,
+            data: {
+                totalWidth: 1206,
+            }
+        },
+        example: {
+            request: {
+                text: '你好, Svg!',
+                fontSize: 16
+            },
+            response: {
+                code: 0,
+                data: {
+                    totalWidth: 74.72,
+                }
+            }
+        }
     }
 ];
 
