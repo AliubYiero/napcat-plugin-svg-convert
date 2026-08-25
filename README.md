@@ -103,54 +103,111 @@ pnpm run deploy
 
 ```ts
 /**
-* 调用 SVG 渲染插件接口
-* @param baseUrl NapCat 基础 URL，如 http://127.0.0.1:6099
-* @param svgCode SVG 代码字符串
-* @param saveWebImage 是否缓存网络图片（可选，默认 false）
-*/
+ * 调用 SVG 渲染插件接口
+ * @param svgCode SVG 代码字符串
+ * @param baseUrl NapCat 基础 URL，如 http://127.0.0.1:6099
+ * @param saveWebImage 是否缓存网络图片（可选，默认 false）
+ */
 async function renderSvg(
-   baseUrl: string,
-   svgCode: string,
-   saveWebImage: boolean = false
+	svgCode: string,
+	saveWebImage: boolean = false,
+	baseUrl: string = 'http://127.0.0.1:6099',
 ): Promise<{ success: boolean; imageBase64?: string; message?: string }> {
+	const url = `${ baseUrl }/plugin/napcat-plugin-svg-render/api/svg/render`;
+	
+	try {
+		const response = await fetch( url, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify( {
+				svg: svgCode,
+				saveWebImage: saveWebImage,
+			} ),
+		} );
+		
+		const result = await response.json() as {
+			code: number;
+			data?: { imageBase64: string; format: string };
+			message?: string;
+		};
+		
+		if ( result.code === 0 && result.data ) {
+			return {
+				success: true,
+				imageBase64: result.data.imageBase64,
+			};
+		}
+		else {
+			return {
+				success: false,
+				message: result.message || '渲染失败',
+			};
+		}
+	}
+	catch ( error ) {
+		return {
+			success: false,
+			message: error instanceof Error ? error.message : String( error ),
+		};
+	}
+}
+```
 
-   const url = `${baseUrl}/plugin/napcat-plugin-svg-render/api/svg/render`;
+**在其他插件调用计算文本宽度示例**
 
-   try {
-       const response = await fetch(url, {
-           method: 'POST',
-           headers: {
-               'Content-Type': 'application/json',
-           },
-           body: JSON.stringify({
-               svg: svgCode,
-               saveWebImage: saveWebImage,
-           }),
-       });
-
-       const result = await response.json() as {
-           code: number;
-           data?: { imageBase64: string; format: string };
-           message?: string;
-       };
-
-       if (result.code === 0 && result.data) {
-           return {
-               success: true,
-               imageBase64: result.data.imageBase64,
-           };
-       } else {
-           return {
-               success: false,
-               message: result.message || '渲染失败',
-           };
-       }
-   } catch (error) {
-       return {
-           success: false,
-           message: error instanceof Error ? error.message : String(error),
-       };
-   }
+```ts
+/**
+ * 预计字符宽度 (半角字符的计算通过微软雅黑字体的宽度进行计算)
+ * @param text 计算宽度的文本
+ * @param fontSize 字体大小
+ * @param baseUrl NapCat 基础 URL，如 http://127.0.0.1:6099
+ */
+export async function calculateTextWidth(
+	text: string,
+	fontSize: number = 16,
+	baseUrl: string = 'http://127.0.0.1:6099',
+): Promise<{ success: boolean; totalWidth?: number; message?: string }> {
+	const url = `${ baseUrl }/plugin/napcat-plugin-svg-render/api/char/width`;
+	
+	try {
+		const response = await fetch( url, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify( {
+				text: text,
+				fontSize: fontSize,
+			} ),
+		} );
+		
+		const result = await response.json() as {
+			code: number;
+			data?: { totalWidth: number };
+			message?: string;
+		};
+		
+		if ( result.code === 0 && result.data ) {
+			return {
+				success: true,
+				totalWidth: result.data.totalWidth,
+			};
+		}
+		else {
+			return {
+				success: false,
+				message: result.message || '计算失败',
+			};
+		}
+	}
+	catch ( error ) {
+		return {
+			success: false,
+			message: error instanceof Error ? error.message : String( error ),
+		};
+	}
 }
 ```
 
