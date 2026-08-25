@@ -33,6 +33,7 @@
     "@types/node": "^20.19.33",
     "char-width": "^1.0.0",
     "napcat-plugin-debug-cli": "^1.2.8",
+    "radash": "^12.1.1",
     "typescript": "^5.9.3",
     "vite": "^6.4.1",
     "ws": "^8.19.0"

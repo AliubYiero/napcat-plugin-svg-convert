@@ -27,6 +27,9 @@ importers:
       napcat-plugin-debug-cli:
         specifier: ^1.2.8
         version: 1.2.8(vite@6.4.1(@types/node@20.19.33)(jiti@1.21.7))(ws@8.19.0)
+      radash:
+        specifier: ^12.1.1
+        version: 12.1.1
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -1035,6 +1038,10 @@ packages:
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
 
+  radash@12.1.1:
+    resolution: {integrity: sha512-h36JMxKRqrAxVD8201FrCpyeNuUY9Y5zZwujr20fFO77tpUtGa6EZzfKw/3WaiBX95fq7+MpsuMLNdSnORAwSA==}
+    engines: {node: '>=14.18.0'}
+
   react-dom@18.3.1:
     resolution: {integrity: sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==}
     peerDependencies:
@@ -2006,6 +2013,8 @@ snapshots:
       source-map-js: 1.2.1
 
   queue-microtask@1.2.3: {}
+
+  radash@12.1.1: {}
 
   react-dom@18.3.1(react@18.3.1):
     dependencies:

@@ -10,7 +10,7 @@ import * as crypto from 'crypto';
 import type { NapCatPluginContext } from 'napcat-types/napcat-onebot/network/plugin/types';
 import type { SvgServiceStatus } from '../types';
 import { ImageCacheService } from './image-cache-service';
-import { sleep } from 'napcat-types/napcat-common/src/helper';
+import { sleep } from 'radash';
 
 const MAX_OUTPUT_SIZE = 10 * 1024 * 1024; // 10MB
 const RSVG_TIMEOUT = 30000; // 30秒
